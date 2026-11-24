@@ -34,3 +34,6 @@ The Python CI job compiles source without starting the server, importing runtime
 ## Local live-edit tools
 
 The static HTML entry no longer embeds a localhost live-edit script or its token. If needed, use a local-only development integration; do not include that script in public builds.
+
+## Firefox Local Bridge (experimental)
+Use the hosted Pages frontend with your existing local backend, without building React locally. See [Firefox Bridge installation](docs/FIREFOX_LOCAL_BRIDGE.md). A one-time native host registration is required; Firefox temporary add-ons must be reloaded after browser restart.

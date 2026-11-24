@@ -1,0 +1,42 @@
+{
+  "manifest_version": 2,
+  "name": "Ark Local Bridge",
+  "version": "0.1.0",
+  "description": "Connect the Ark Studio website to your approved local Windows backend.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ark-local-bridge@single-spider.github.io",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "nativeMessaging",
+    "tabs",
+    "webRequest",
+    "webRequestBlocking",
+    "https://single-spider.github.io/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": true
+  },
+  "browser_action": {
+    "default_title": "Ark Local Bridge",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://single-spider.github.io/Ark-ImageGenStudio/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
+}

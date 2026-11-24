@@ -2,6 +2,7 @@
  * Local FastAPI + WebSocket + PyWebView2 desktop client.
  * Falls back cleanly to null when hosted on static GitHub Pages.
  */
+import { bridgeRpc, bridgeEvents, type BrowserBridgeConnection } from './browser-bridge';
 import type {
   BackendAsset,
   BackendAssetChain,
@@ -37,13 +38,26 @@ export function detectLocalBackend(location = window.location): LocalBackendConn
   return { baseUrl: location.origin, token };
 }
 
-export function createDesktopBackend(connection: LocalBackendConnection) {
+let browserBridgeActive = false;
+
+export function createBrowserBackend(connection: BrowserBridgeConnection) {
+  browserBridgeActive = true;
+  return createDesktopBackend({ ...connection, token: '' }, true);
+}
+
+export function createDesktopBackend(connection: LocalBackendConnection, bridge = false) {
   const baseUrl = new URL(connection.baseUrl);
   if (!LOOPBACK_HOSTS.has(baseUrl.hostname.toLowerCase()) || baseUrl.protocol !== 'http:') {
     throw new Error('Ark backend connections are restricted to local loopback HTTP.');
   }
 
   async function request<T>(method: string, route: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+    if (bridge) {
+      if (signal?.aborted) throw new DOMException('Request aborted', 'AbortError');
+      const result = await bridgeRpc<T>('request', method, route, body);
+      if (signal?.aborted) throw new DOMException('Request aborted', 'AbortError');
+      return result;
+    }
     const headers = new Headers({ Accept: 'application/json' });
     if (connection.token) headers.set('x-ark-token', connection.token);
     if (body !== undefined) headers.set('Content-Type', 'application/json');
@@ -68,11 +82,15 @@ export function createDesktopBackend(connection: LocalBackendConnection) {
     if (url.origin !== baseUrl.origin || !['http:', 'https:'].includes(url.protocol)) {
       throw new Error('Unexpected off-origin asset URL from local backend.');
     }
+    if (bridge && !/^\/(library|library-thumbnails|generation_history)\//.test(url.pathname)) {
+      throw new Error('Unexpected media path.');
+    }
     return url.href;
   }
 
   return {
     connection: { baseUrl: baseUrl.origin },
+    mode: bridge ? 'browser-bridge' as const : 'desktop' as const,
     assetUrl,
     bootstrap: (signal?: AbortSignal) => request<BackendBootstrap>('GET', '/api/bootstrap', undefined, signal),
     listAssets: (query: BackendAssetQuery = {}, signal?: AbortSignal) => {
@@ -114,6 +132,7 @@ export function createDesktopBackend(connection: LocalBackendConnection) {
       request<{ ok: boolean }>('POST', '/api/config', cfg),
     dryRun: () => request<{ success: boolean; message?: string; error?: string }>('POST', '/api/dry-run'),
     connectEvents: (onEvent: (event: BackendSocketEvent) => void) => {
+      if (bridge) return bridgeEvents(onEvent);
       const url = new URL('/ws', baseUrl);
       url.protocol = 'ws:';
       if (connection.token) url.searchParams.set('token', connection.token);
@@ -136,6 +155,7 @@ export function createDesktopBackend(connection: LocalBackendConnection) {
 export type DesktopBackendClient = ReturnType<typeof createDesktopBackend>;
 
 export function nativeOpenFolder(): void {
+  if (browserBridgeActive) { void bridgeRpc('open-folder').catch(() => {}); return; }
   const w = window as unknown as { pywebview?: { api?: { open_library_folder?: () => void } } };
   w.pywebview?.api?.open_library_folder?.();
 }
