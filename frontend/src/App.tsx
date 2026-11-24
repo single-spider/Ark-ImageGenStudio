@@ -13,7 +13,8 @@ import { Workspace } from './components/Workspace';
 import { initialReferences, mockAssets } from './data/mock';
 import { mockStudioApi } from './lib/api';
 import { backendAssetToStudio } from './lib/backend-asset-mapper';
-import { createDesktopBackend, detectLocalBackend, nativeOpenFolder } from './lib/backend-client';
+import { createBrowserBackend, createDesktopBackend, detectLocalBackend, nativeOpenFolder } from './lib/backend-client';
+import type { BrowserBridgeConnection } from './lib/browser-bridge';
 import { getLineage, getLineageWindow } from './lib/lineage';
 import {
   SEEDREAM_MODELS,
@@ -23,11 +24,13 @@ import {
 
 const defaultPrompt = 'An ancient forest after rainfall, soft shafts of amber light breaking through the canopy, fine atmospheric mist, deep emerald foliage, cinematic composition, exquisite natural texture, subtle film grain, rich shadow detail';
 
-export default function App() {
+export default function App({ bridge = null }: { bridge?: BrowserBridgeConnection | null }) {
   const backend = useMemo(() => {
+    if (bridge) return createBrowserBackend(bridge);
     const conn = detectLocalBackend();
     return conn ? createDesktopBackend(conn) : null;
-  }, []);
+  }, [bridge]);
+  const isBrowserBridge = backend?.mode === 'browser-bridge';
 
   const [assets, setAssets] = useState<StudioAsset[]>(mockAssets);
   const [activeId, setActiveId] = useState(mockAssets[0].id);
@@ -91,7 +94,9 @@ export default function App() {
   const [libraryInspectId, setLibraryInspectId] = useState<string | null>(null);
   const [branchOriginId, setBranchOriginId] = useState<string | null>(null);
 
-  const activeAsset = assets.find((asset) => asset.id === activeId) ?? assets[0];
+  const activeAsset = assets.find((asset) => asset.id === activeId) ?? assets[0] ?? {
+    ...mockAssets[0], id: 'empty-library', src: '', thumb: '', title: 'No images in library', prompt: '', seed: 0, keeper: false,
+  };
   const compareAsset = assets.find((asset) => asset.id === compareId) ?? assets[1] ?? activeAsset;
   const previewSlot = references.find((ref) => ref.id === referencePreviewId && ref.src) ?? references.find((ref) => ref.src);
   const referenceAsset: StudioAsset | null = previewSlot?.src ? (
@@ -258,6 +263,7 @@ export default function App() {
   }
 
   async function handleEmptyTrash() {
+    if (isBrowserBridge) { toast('Permanent deletion disabled', 'Use your local desktop app to empty the Garbage Bin.'); return; }
     if (!trashAssets.length) return;
     if (!window.confirm(`Permanently delete all ${trashAssets.length} images in Garbage Bin from disk?`)) return;
     if (backend) {
@@ -604,13 +610,13 @@ export default function App() {
             creativity={creativity} generating={generating}
             isDesktopBackend={Boolean(backend)}
             dryRun={dryRun}
-            apiConfig={{
+            apiConfig={isBrowserBridge ? undefined : {
               apiKey: String(rawConfig.api_key ?? ''),
               baseUrl: String(rawConfig.base_url ?? ''),
               proEndpointId: String(rawConfig.pro_endpoint_id ?? ''),
             }}
             onDryRunChange={setDryRun}
-            onSaveApiConfig={async (cfg) => {
+            onSaveApiConfig={isBrowserBridge ? undefined : async (cfg) => {
               if (!backend) return;
               const next = { ...rawConfig, api_key: cfg.apiKey.trim(), base_url: cfg.baseUrl.trim(), pro_endpoint_id: cfg.proEndpointId.trim(), model };
               setRawConfig(next);
@@ -656,7 +662,7 @@ export default function App() {
         <footer className="statusbar">
           <div className="statusbar-left">
             <span className="statusbrand">ARK</span><span className="statusbar-rule" /> v2.0 {backend ? 'STUDIO' : 'PREVIEW'} <span className="statusbar-rule" />
-            <span className="status-indicator"><span className="status-dot" /> {backend ? (sorterLabel || 'LOCAL FASTAPI CONNECTED') : 'MOCK API / NO AI CALLS'}</span>
+            <span className="status-indicator"><span className="status-dot" /> {isBrowserBridge ? 'FIREFOX LOCAL BRIDGE' : backend ? (sorterLabel || 'LOCAL FASTAPI CONNECTED') : 'MOCK API / NO AI CALLS'}</span>
             {backend && (
               <button type="button" onClick={nativeOpenFolder} style={{ marginLeft: 10, opacity: 0.75, cursor: 'pointer' }} title="Open unified media folder">
                 <FolderOpen size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Folder
@@ -773,6 +779,7 @@ export default function App() {
                 {backend && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, letterSpacing: '0.06em' }}>BYTEPLUS API &amp; LIBRARY</div>
+                    {isBrowserBridge ? <p style={{fontSize:11}}>Provider settings are managed by your local backend. Use the Firefox extension to disconnect.</p> : <>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <input type={showTopApiKey ? 'text' : 'password'} value={topApiKey} onChange={(e) => setTopApiKey(e.target.value)} placeholder="Paste BytePlus Ark API key…" style={{ flex: 1, padding: '6px 10px', borderRadius: 7, background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.1)', color: 'inherit', fontSize: 12 }} />
                       <button type="button" className="text-icon-button" onClick={() => setShowTopApiKey((v) => !v)}>{showTopApiKey ? <EyeOff size={14} /> : <Eye size={14} />}</button>
@@ -781,6 +788,7 @@ export default function App() {
                       <input value={topBaseUrl} onChange={(e) => setTopBaseUrl(e.target.value)} placeholder="Base URL (optional)" style={{ flex: 1, padding: '6px 10px', borderRadius: 7, background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.1)', color: 'inherit', fontSize: 12 }} />
                       <input value={topProEp} onChange={(e) => setTopProEp(e.target.value)} placeholder="Pro Endpoint ep-..." style={{ flex: 1, padding: '6px 10px', borderRadius: 7, background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.1)', color: 'inherit', fontSize: 12 }} />
                     </div>
+                    </>}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button type="button" className="text-icon-button" onClick={nativeOpenFolder} style={{ padding: '5px 10px', fontSize: 12 }}><FolderOpen size={13}/> Open Folder</button>
@@ -788,7 +796,7 @@ export default function App() {
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button type="button" className="text-icon-button" onClick={() => { void backend.dryRun().then((r) => toast(r.success ? 'API OK' : 'API test failed', r.message || r.error)); }} style={{ padding: '5px 10px', fontSize: 12 }}><TestTube size={13}/> Test</button>
-                        <button type="button" className="text-icon-button" onClick={() => { const next = { ...rawConfig, api_key: topApiKey.trim(), base_url: topBaseUrl.trim(), pro_endpoint_id: topProEp.trim(), model }; setRawConfig(next); void backend.saveConfig(next).then(() => toast('Settings saved')); }} style={{ padding: '5px 10px', fontSize: 12, background: 'rgba(255,255,255,0.12)' }}><Check size={13}/> Save</button>
+                        {!isBrowserBridge && <button type="button" className="text-icon-button" onClick={() => { const next = { ...rawConfig, api_key: topApiKey.trim(), base_url: topBaseUrl.trim(), pro_endpoint_id: topProEp.trim(), model }; setRawConfig(next); void backend.saveConfig(next).then(() => toast('Settings saved')); }} style={{ padding: '5px 10px', fontSize: 12, background: 'rgba(255,255,255,0.12)' }}><Check size={13}/> Save</button>}
                       </div>
                     </div>
                   </div>

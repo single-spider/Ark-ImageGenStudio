@@ -247,7 +247,14 @@ export function StudioControls({
           </div>
         </div>
         </div>
-          {isDesktopBackend && (
+          {isDesktopBackend && !apiConfig && (
+            <div className="advanced-panel">
+              <p style={{fontSize:11}}>Firefox Local Bridge: provider configuration remains local.</p>
+              <label style={{display:'flex', gap:6, marginTop:8, fontSize:12}}><input type="checkbox" checked={dryRun} onChange={(e) => onDryRunChange?.(e.target.checked)}/> Dry Run (local test image)</label>
+              {onTestApi && <button type="button" className="text-icon-button" onClick={onTestApi} title="Test provider connection"><TestTube size={14}/></button>}
+            </div>
+          )}
+          {isDesktopBackend && apiConfig && (
             <>
               <div className="generation-advanced-heading">BytePlus API &amp; Connection <span>Local desktop</span></div>
               <div className="advanced-panel">
