@@ -46,7 +46,8 @@ def allowed(method, path):
     if method == "GET":
         return (path in ("/api/bootstrap", "/api/assets")
                 or re.fullmatch(r"/api/assets/[^/]+/chain", path)
-                or path.startswith(("/library/", "/library-thumbnails/", "/generation_history/")))
+                or (path.startswith(("/library/", "/library-thumbnails/", "/generation_history/"))
+                    and re.search(r"\.(jpe?g|png|webp|gif|bmp|avif|tiff?)$", path, re.I)))
     if method == "PATCH":
         return bool(re.fullmatch(r"/api/assets/[^/]+", path))
     return method == "POST" and (path in (

@@ -32,7 +32,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
   }, [bridge]);
   const isBrowserBridge = backend?.mode === 'browser-bridge';
 
-  const [assets, setAssets] = useState<StudioAsset[]>(mockAssets);
+  const [assets, setAssets] = useState<StudioAsset[]>(backend ? [] : mockAssets);
   const [activeId, setActiveId] = useState(mockAssets[0].id);
   const [compareId, setCompareId] = useState(mockAssets[1].id);
   const [references, setReferences] = useState<ReferenceSlot[]>(
@@ -95,7 +95,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
   const [branchOriginId, setBranchOriginId] = useState<string | null>(null);
 
   const activeAsset = assets.find((asset) => asset.id === activeId) ?? assets[0] ?? {
-    ...mockAssets[0], id: 'empty-library', src: '', thumb: '', title: 'No images in library', prompt: '', seed: 0, keeper: false,
+    ...mockAssets[0], id: 'empty-library', src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', thumb: '', title: 'No images in library', prompt: '', seed: 0, keeper: false,
   };
   const compareAsset = assets.find((asset) => asset.id === compareId) ?? assets[1] ?? activeAsset;
   const previewSlot = references.find((ref) => ref.id === referencePreviewId && ref.src) ?? references.find((ref) => ref.src);

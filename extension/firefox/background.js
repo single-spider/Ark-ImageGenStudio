@@ -4,7 +4,7 @@ const PAGE = 'https://single-spider.github.io/Ark-ImageGenStudio/';
 let native = null, connection = null, socket = null, approvedTab = null;
 let status = 'Disconnected', startPromise = null, reconnectTimer = null;
 const isArk = url => { try { const u = new URL(url); return u.origin === new URL(PAGE).origin && u.pathname.startsWith('/Ark-ImageGenStudio/'); } catch { return false; } };
-const mediaPath = path => /^\/(library|library-thumbnails|generation_history)\//.test(path) && !path.split('/').some(p => p === '..');
+const mediaPath = path => /^\/(library|library-thumbnails|generation_history)\//.test(path) && /\.(jpe?g|png|webp|gif|bmp|avif|tiff?)$/i.test(path) && !decodeURIComponent(path).split('/').some(p => p === '..');
 function allowed(method, path) {
   if (method === 'GET') return path === '/api/bootstrap' || path === '/api/assets' || /^\/api\/assets\/[^/]+\/chain$/.test(path);
   if (method === 'PATCH') return /^\/api\/assets\/[^/]+$/.test(path);
@@ -22,7 +22,7 @@ function disconnect(reload = true) {
   if (socket) { socket.onclose = null; socket.close(); socket = null; }
   if (native) { const p = native; native = null; try { p.disconnect(); } catch {} }
   publish('Disconnected');
-  if (reload && tab !== null) browser.tabs.sendMessage(tab, { type: 'bridge-disconnected' }).catch(() => {});
+  if (reload && tab !== null) browser.tabs.sendMessage(tab, { type: 'bridge-disconnected' }).catch(() => browser.tabs.reload(tab).catch(() => {}));
 }
 function events() {
   if (!connection || approvedTab === null) return;
@@ -109,7 +109,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
 browser.webRequest.onBeforeSendHeaders.addListener(details => {
   if (!connection || details.tabId !== approvedTab || details.frameId !== 0 || !isArk(details.documentUrl || details.originUrl)) return {};
   const u = new URL(details.url);
-  if (u.origin !== connection.baseUrl || !mediaPath(u.pathname)) return {};
+  try { if (u.origin !== connection.baseUrl || !mediaPath(u.pathname)) return {}; } catch { return {}; }
   const headers = (details.requestHeaders || []).filter(h => h.name.toLowerCase() !== 'x-ark-token');
   headers.push({ name:'x-ark-token', value:connection.token });
   return { requestHeaders:headers };
