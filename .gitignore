@@ -1,0 +1,41 @@
+# Dependencies & build outputs
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local runtime state & databases
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+studio.db*
+ark_studio_config.json
+sorter-status.json
+legacy-location.json
+image_tree.json
+studio-heartbeat.json
+webview2_v2/
+library_metadata/
+thumbnails/
+Downloads/
+generated/
+outputs/
+
+# Secrets & OS
+.env
+.env.*
+!.env.example
+*.local
+.DS_Store
+Thumbs.db
+
+# Archives
+*.zip

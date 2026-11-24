@@ -1,0 +1,63 @@
+/* Canvas modes, pointer-anchored zoom and the reference flyout. */
+.stage-image-transform {
+  transform-origin: center center;
+  transition: none;
+}
+.stage-image-transform .mask-overlay { z-index: 6; }
+.ark-generation-field {
+  position:absolute; inset:0; z-index:20; overflow:hidden;
+  background:radial-gradient(ellipse at 50% 42%,rgba(var(--accent-rgb),.10),transparent 75%),var(--theme-base);
+  color:var(--accent);
+}
+.ark-generation-field-dots {
+  position:absolute; inset:12px;
+  display:grid; place-items:center;
+}
+.ark-generation-field .ark-generation-dot { width:5px; height:5px; }
+.ark-generation-field-status {
+  position:absolute; left:18px; bottom:18px; right:18px;
+  display:flex; align-items:center; gap:10px;
+  font-size:11px; color:var(--text-soft);
+  padding:10px 12px; width:max-content; max-width:calc(100% - 36px);
+  background:var(--theme-base); border-radius:7px;
+}
+.ark-generation-field-status strong { color:var(--accent); font-weight:700; }
+.canvas-reference-empty { position:absolute; inset:0; display:grid; place-items:center; color:var(--muted); font-size:13px; background:var(--theme-base); }
+.ark-reference-picker {
+  position:fixed; z-index:420;
+  display:flex; flex-direction:column; gap:10px;
+  padding:12px; overflow:hidden;
+  background:var(--theme-dialog); color:var(--text);
+  border:1px solid var(--theme-edge); border-radius:13px;
+  box-shadow:0 22px 65px #000a,inset 0 1px 0 #ffffff17;
+  font-family:'Manrope',sans-serif;
+}
+.ark-ref-picker-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.ark-ref-picker-head > div { display:flex; flex-direction:column; gap:4px; }
+.ark-ref-picker-head > div > span { color:var(--accent-dim); font-size:8px; font-weight:800; letter-spacing:.13em; }
+.ark-ref-picker-head strong { font-family:var(--theme-heading); font-size:22px; font-weight:var(--theme-heading-weight); line-height:1; }
+.ark-ref-picker-head button,.ark-ref-picker-detail button { background:transparent; border:0; color:var(--muted); padding:5px; display:grid; place-items:center; }
+.ark-ref-picker-search { display:flex; gap:8px; align-items:center; flex-shrink:0; padding:9px 10px; border-radius:7px; border:1px solid var(--line); background:var(--theme-field); color:var(--muted); }
+.ark-ref-picker-search input { min-width:0; flex:1; background:transparent; border:0; outline:0; color:var(--text); font-size:11px; }
+.ark-ref-picker-search input::placeholder { color:var(--muted); }
+.ark-ref-picker-actions { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.ark-ref-picker-actions button,.ark-ref-picker-actions label,.ark-ref-picker-more {
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  border:1px solid var(--line); background:transparent; color:var(--text-soft);
+  padding:6px 8px; border-radius:6px; font-size:10px; cursor:pointer;
+}
+.ark-ref-picker-actions button[aria-pressed=true] { color:var(--accent); background:rgba(var(--accent-rgb),.12); }
+.ark-ref-picker-actions label { margin-left:auto; position:relative; }
+.ark-ref-picker-actions input { position:absolute; width:1px; height:1px; opacity:0; }
+.ark-ref-picker-scroll { flex:1; min-height:0; overflow:auto; scrollbar-width:thin; scrollbar-color:var(--muted) transparent; overscroll-behavior:contain; }
+.ark-ref-picker-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; align-items:start; }
+.ark-ref-picker-tile { aspect-ratio:4/3 !important; }
+.ark-ref-picker-tile .ark-tile-selected { left:6px; bottom:6px; }
+.ark-ref-picker-tile .ark-tile-hover { padding-left:30px; }
+.ark-ref-picker-empty { color:var(--muted); font-size:11px; padding:20px 0; text-align:center; }
+.ark-ref-picker-more { margin:9px auto 0; }
+.ark-ref-picker-detail { display:flex; justify-content:space-between; align-items:center; border:1px solid var(--line); border-radius:6px; padding:8px; background:var(--theme-field); }
+.ark-ref-picker-detail > div { display:flex; flex-direction:column; gap:4px; font-size:11px; min-width:0; }
+.ark-ref-picker-detail strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ark-ref-picker-detail span { color:var(--muted); font-size:10px; }
+.ark-reference-picker footer { color:var(--muted); font-size:9px; }
