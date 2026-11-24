@@ -25,6 +25,8 @@ export interface StudioAsset {
   /** Optional ancestry metadata; never encoded into the existing image ID. */
   parentId?: string;
   lineageId?: string;
+  libraryCategory?: string;
+  timestamp?: number;
 }
 
 export interface ReferenceSlot {

@@ -25,11 +25,12 @@ export function backendAssetToStudio(asset: BackendAsset, client: DesktopBackend
     typeof asset.metadata?.seed === 'number' && Number.isFinite(asset.metadata.seed)
       ? asset.metadata.seed
       : 0;
-  const refIds = Array.isArray(asset.metadata?.ref_ids)
+  const metaRefIds = Array.isArray(asset.metadata?.ref_ids)
     ? (asset.metadata.ref_ids as string[])
     : typeof asset.metadata?.ref_id === 'string'
       ? [asset.metadata.ref_id]
       : [];
+  const refIds = Array.from(new Set([...(asset.ref_ids ?? []), ...metaRefIds].filter(Boolean)));
 
   return {
     id: asset.id,
@@ -50,6 +51,9 @@ export function backendAssetToStudio(asset: BackendAsset, client: DesktopBackend
     exactPixels: asset.exact_pixels,
     modelCode: asset.model_code,
     refIds,
-    parentId: refIds[0],
+    parentId: asset.parent_id || refIds[0],
+    lineageId: asset.root_id || asset.id,
+    libraryCategory: asset.library_category,
+    timestamp: asset.timestamp,
   };
 }

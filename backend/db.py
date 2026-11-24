@@ -558,6 +558,54 @@ def row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def _enrich_with_lineage(conn: sqlite3.Connection, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach parent_id, root_id, ref_ids, and child_count from the lineage table."""
+    if not items:
+        return items
+    lineage_rows = conn.execute("SELECT child_id, parent_id, ref_ids_json FROM lineage").fetchall()
+    parent_of: dict[str, str] = {}
+    refs_of: dict[str, list[str]] = {}
+    child_count_of: dict[str, int] = {}
+    for lr in lineage_rows:
+        cid = lr["child_id"]
+        pid = lr["parent_id"]
+        if pid and pid != cid:
+            parent_of[cid] = pid
+            child_count_of[pid] = child_count_of.get(pid, 0) + 1
+        try:
+            rids = json.loads(lr["ref_ids_json"] or "[]")
+            if isinstance(rids, list):
+                refs_of[cid] = [str(x) for x in rids if x]
+        except Exception:
+            pass
+
+    root_cache: dict[str, str] = {}
+
+    def find_root(aid: str) -> str:
+        if aid in root_cache:
+            return root_cache[aid]
+        curr = aid
+        seen = {curr}
+        while curr in parent_of and parent_of[curr] not in seen:
+            curr = parent_of[curr]
+            seen.add(curr)
+        root_cache[aid] = curr
+        return curr
+
+    for item in items:
+        aid = item["id"]
+        pid = parent_of.get(aid)
+        item["parent_id"] = pid
+        item["root_id"] = find_root(aid)
+        item["child_count"] = child_count_of.get(aid, 0)
+        rids = list(refs_of.get(aid, []))
+        if pid and pid not in rids:
+            rids.insert(0, pid)
+        if rids:
+            item["ref_ids"] = rids
+    return items
+
+
 def query_assets(
     space: str = "all",
     search: str = "",
@@ -644,7 +692,7 @@ def query_assets(
             sql = f"SELECT * FROM assets {where_sql} {order_sql} LIMIT ?"
             params.append(limit)
             rows = conn.execute(sql, params).fetchall()
-            return [row_to_dict(r) for r in rows]
+            return _enrich_with_lineage(conn, [row_to_dict(r) for r in rows])
         finally:
             conn.close()
 

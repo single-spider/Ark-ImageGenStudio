@@ -27,6 +27,10 @@ export interface BackendAsset {
   vault_category: string | null;
   vault_tags: string[];
   metadata: Record<string, unknown>;
+  parent_id?: string | null;
+  root_id?: string;
+  ref_ids?: string[];
+  child_count?: number;
 }
 
 export interface BackendChainNode {

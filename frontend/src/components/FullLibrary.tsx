@@ -8,6 +8,7 @@ import {
 import { AssetActionMenu } from './library/AssetActionMenu';
 import type { AssetMenuTarget } from './library/AssetActionMenu';
 import { LibraryTile } from './library/LibraryTile';
+import { LineagePacksView } from './library/LineagePacksView';
 import { filterLibrary, resolveLibraryAssetId } from '../lib/library';
 import type { LibraryScope, LibrarySort } from '../lib/library';
 import { solveOrganicMasonry } from '../lib/organicMasonry';
@@ -57,6 +58,7 @@ export function FullLibrary({
   const [model, setModel] = useState<string | null>(null);
   const [sort, setSort] = useState<LibrarySort>('newest');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'stacks'>('grid');
   const [tileSize, setTileSize] = useState<number>(() => {
     try {
       const saved = Number(window.localStorage.getItem('ark-full-tile-size'));
@@ -371,15 +373,46 @@ export function FullLibrary({
               />
               <span style={{ fontSize: 11, opacity: 0.75, minWidth: 34 }}>{tileSize}px</span>
             </label>
+            <div className="ark-view-mode-switch" role="group" aria-label="Library view mode">
+              <button
+                type="button"
+                className={viewMode === 'grid' ? 'active' : ''}
+                onClick={() => setViewMode('grid')}
+                title="Masonry grid view"
+              >
+                <LayoutGrid size={14} /> Grid
+              </button>
+              <button
+                type="button"
+                className={viewMode === 'stacks' ? 'active' : ''}
+                onClick={() => setViewMode('stacks')}
+                title="Lineage stacks view"
+              >
+                <Layers size={14} /> Stacks
+              </button>
+            </div>
           </div>
 
           <div className="ark-library-grid-summary">
-            <span><LayoutGrid size={14}/> {visible.length.toLocaleString()} IMAGES <span className="ark-library-summary-separator">/</span> {columns} COLUMNS</span>
-            <span>{multiSelectMode ? 'MULTI-SELECT ACTIVE · CLICK IMAGES TO SELECT' : focusedId ? 'CLICK EXPANDED TILE TO COLLAPSE · DOUBLE-CLICK TO OPEN' : 'CLICK TO EXPAND IN-PLACE · DOUBLE-CLICK TO OPEN · RIGHT-CLICK FOR ACTIONS'}</span>
+            <span><LayoutGrid size={14}/> {visible.length.toLocaleString()} IMAGES <span className="ark-library-summary-separator">/</span> {viewMode === 'stacks' ? 'LINEAGE PACKS' : `${columns} COLUMNS`}</span>
+            <span>{viewMode === 'stacks' ? 'SCROLL OVER ANY STACK TO FLIP CARDS · CLICK TO EXPAND LINEAGE' : multiSelectMode ? 'MULTI-SELECT ACTIVE · CLICK IMAGES TO SELECT' : focusedId ? 'CLICK EXPANDED TILE TO COLLAPSE · DOUBLE-CLICK TO OPEN' : 'CLICK TO EXPAND IN-PLACE · DOUBLE-CLICK TO OPEN · RIGHT-CLICK FOR ACTIONS'}</span>
           </div>
 
           <div className="ark-library-scroller" ref={scrollerRef} tabIndex={0} aria-label="Scrollable image grid">
             {visible.length ? (
+              viewMode === 'stacks' ? (
+                <LineagePacksView
+                  visible={visible}
+                  allAssets={catalog}
+                  activeId={activeId}
+                  selectedIds={selectedIds}
+                  multiSelectMode={multiSelectMode}
+                  onToggleSelect={onToggleSelect}
+                  onOpenWorkspace={openWorkspace}
+                  onInspect={inspect}
+                  onContextMenu={contextMenu}
+                />
+              ) : (
               <div className="ark-library-virtual-plane" style={{ height: masonry.totalH }}>
                 {visible.map((asset, index) => {
                   const r = masonry.rects[index];
@@ -419,6 +452,7 @@ export function FullLibrary({
                   );
                 })}
               </div>
+              )
             ) : (
               <div className="ark-library-empty">
                 <Images size={32}/><h3>Nothing in this view</h3>
