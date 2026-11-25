@@ -30,6 +30,26 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run build
+      # Keep the main application at the project root, and publish the
+      # independent refinement branch beneath /preview/ in the same artifact.
+      - name: Check out studio refinement
+        uses: actions/checkout@v4
+        with:
+          ref: impeccable/quieter-distill-studio
+          path: preview-source
+          persist-credentials: false
+      - name: Install refinement dependencies
+        working-directory: preview-source/frontend
+        run: npm ci --no-audit --no-fund
+      - name: Build refinement preview
+        working-directory: preview-source/frontend
+        run: npm run build
+      - name: Assemble both Pages builds
+        run: |
+          mkdir -p dist/preview
+          cp -a ../preview-source/frontend/dist/. dist/preview/
+          test -f dist/index.html
+          test -f dist/preview/index.html
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static frontend
