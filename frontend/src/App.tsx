@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import {
-  ArrowLeftRight, Check, ChevronDown, CircleHelp, Command, Eye, EyeOff, FolderOpen,
-  Images, Layers3, Monitor, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
-  RefreshCw, Settings, Settings2, Shield, Sparkles, TestTube, X,
-} from 'lucide-react';
+import { ArrowLeftRight, Check, ChevronDown, CircleHelp, Eye, EyeOff, FolderOpen, Images, Monitor, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, Settings, Shield, Sparkles, TestTube, X } from 'lucide-react';
 import { Gallery } from './components/Gallery';
 import { FullLibrary } from './components/FullLibrary';
 import { MultiSelectBar } from './components/library/MultiSelectBar';
@@ -397,6 +393,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
       ...current,
       { id: `ref-${n}`, title: `Reference ${n}`, role: 'Detail', src: null, enabled: false },
     ]);
+    return `ref-${n}`;
   }
 
   function addAsReference(id: string) {
@@ -557,21 +554,12 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
 
   return (
     <div className="ark-app" data-theme={theme} data-mini-library={miniLibraryOpen ? "open" : "closed"}>
-      <div className="background-photo" />
-      <div className="background-vignette" />
-      <div className="background-grain" />
       <div className="app-content">
         <header className="topbar">
           <div className="brand-lockup">
             <div className="brand-mark"><span>A</span><span className="brand-mark-spark">✦</span></div>
             <div className="brand-type"><strong>ARK</strong><span>IMAGE STUDIO <i>V2</i></span></div>
           </div>
-          <span className="topbar-divider" />
-          <div className="project-crumb">
-            <span className="crumb-kicker">UNIFIED LIBRARY</span>
-            <div className="crumb-title"><FolderOpen size={14} /> Downloads / Images <span className="crumb-code">· {assets.length}</span></div>
-          </div>
-          <span className="topbar-divider small" />
           <div className="ark-topbar-library-controls">
             <button type="button" className="ark-topbar-library-button" title="Open Full Library (G)" aria-label="Open Full Library" onClick={() => openFullLibrary()}>
               <Images size={16}/><span>Library</span>
@@ -587,8 +575,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
             </button>
           </div>
           <div className="topbar-spacer" />
-          <span className="topbar-divider small" />
           <div className="theme-selector"><Palette size={15} /><select aria-label="Color theme" value={theme} onChange={(event) => setTheme(event.target.value as StudioTheme)}><option value="nocturne">Nocturne</option><option value="mineral">Mineral</option><option value="ember">Ember</option><option value="graphite">Graphite</option></select><ChevronDown size={12} /></div>
+          {backend && !isBrowserBridge && /stopped|not responding|error|failed/i.test(sorterLabel) && <button type="button" className="topbar-icon studio-status-alert" title={sorterLabel} aria-label={sorterLabel} onClick={() => setAppSettingsOpen(true)}><CircleHelp size={17}/></button>}
           <button type="button" className="topbar-icon" title="Studio settings & privacy filter" aria-label="Studio settings" onClick={() => setAppSettingsOpen(true)}><Settings size={17} /></button>
           <button type="button" className="topbar-icon" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => setHelpOpen(true)}><CircleHelp size={18} /></button>
         </header>
@@ -659,18 +647,6 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
           />
         </main>
 
-        <footer className="statusbar">
-          <div className="statusbar-left">
-            <span className="statusbrand">ARK</span><span className="statusbar-rule" /> v2.0 {backend ? 'STUDIO' : 'PREVIEW'} <span className="statusbar-rule" />
-            <span className="status-indicator"><span className="status-dot" /> {isBrowserBridge ? 'FIREFOX LOCAL BRIDGE' : backend ? (sorterLabel || 'LOCAL FASTAPI CONNECTED') : 'MOCK API / NO AI CALLS'}</span>
-            {backend && (
-              <button type="button" onClick={nativeOpenFolder} style={{ marginLeft: 10, opacity: 0.75, cursor: 'pointer' }} title="Open unified media folder">
-                <FolderOpen size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Folder
-              </button>
-            )}
-          </div>
-          <div className="statusbar-right"><Layers3 size={13} /> {assets.length} images <span className="statusbar-rule" /><Command size={13} /> Ctrl + Enter to {backend ? 'generate' : 'simulate'} <span className="statusbar-rule" /><Settings2 size={13} /> React 19</div>
-        </footer>
       </div>
 
       {fullLibraryOpen && (
@@ -745,7 +721,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
         {appSettingsOpen && (
           <motion.div className="modal-scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={() => setAppSettingsOpen(false)}>
             <motion.div className="help-modal" role="dialog" aria-modal="true" aria-labelledby="studio-settings-title" initial={{ opacity: 0, y: 14, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: .98 }} onMouseDown={(event) => event.stopPropagation()}>
-              <div className="help-modal-head"><div><span className="section-kicker">STUDIO PREFERENCES</span><h2 id="studio-settings-title">Settings &amp; Privacy</h2></div><button type="button" aria-label="Close settings" onClick={() => setAppSettingsOpen(false)}><X size={18} /></button></div>
+              <div className="help-modal-head"><div><h2 id="studio-settings-title">Settings &amp; Privacy</h2></div><button type="button" aria-label="Close settings" onClick={() => setAppSettingsOpen(false)}><X size={18} /></button></div>
+              <p className="studio-connection-status" role="status">{isBrowserBridge ? 'Firefox local bridge connected' : backend ? (sorterLabel || 'Local backend connected') : 'Mock preview · no AI calls'} · {assets.length} images</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>

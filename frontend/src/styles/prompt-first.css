@@ -1,6 +1,6 @@
 /* Prompt-first workspace. Layered after canvas-polish.css. */
 .ark-app {
-  --ark-canvas-height: clamp(430px, calc(100dvh - 248px), 1050px);
+  --ark-canvas-height: max(360px, calc(100dvh - 170px));
   --ark-canvas-footer-height: 58px;
 }
 .studio-layout { align-items: start; }
@@ -17,19 +17,19 @@
 .studio-layout[data-library-side="left"] .mini-library-heading-actions button:last-child svg { transform: scaleX(-1); }
 
 .controls-panel, .gallery-panel {
-  height: calc(var(--ark-canvas-height) + 76px + var(--ark-canvas-footer-height));
+  height: calc(var(--ark-canvas-height) + 41px + var(--ark-canvas-footer-height));
   min-height: 0;
 }
-.image-stage { min-height: 430px; }
+.image-stage { min-height:360px; box-shadow:none; border-radius:7px; }
 /* No title or history shadows across the picture when the drawer is closed. */
 .image-stage::after {
-  background: linear-gradient(180deg,rgba(5,14,11,.24) 0%,transparent 14%);
+  background:none;
 }
 .viewport-foot {
   position: relative;
   height: var(--ark-canvas-footer-height);
-  display: grid;
-  grid-template-columns: minmax(0,1fr) auto auto;
+  display:flex;
+  justify-content:center;
   gap: 10px;
   align-items: center;
 }
@@ -134,10 +134,10 @@
 /* Prompt Studio gets the primary real estate. */
 .controls-panel .control-section { padding:14px 17px 15px; }
 .controls-panel .section-topline, .controls-panel .section-topline.compact { margin-bottom:11px; }
-.controls-panel .section-topline h3 { font-size:23px; margin-top:3px; }
+.controls-panel .section-topline h3 { font:700 14px/1.35 Manrope,sans-serif; margin:0; }
 .controls-panel .section-kicker { font-size:8px; letter-spacing:.15em; }
 .controls-panel .references-collapsed .section-topline { margin-bottom:0; }
-.controls-panel .reference-card { aspect-ratio:1.14; min-height:78px; }
+.controls-panel .reference-card { aspect-ratio:3/4; min-height:78px; box-shadow:none; border-radius:7px; }
 .controls-panel .reference-foot { margin-top:8px; }
 .controls-panel .utility-shelf { gap:6px; }
 .controls-panel .utility-shelf button { height:49px; gap:5px; }
@@ -150,9 +150,7 @@
   background:rgba(var(--accent-rgb),.07);
 }
 .generation-gear:hover { background:rgba(var(--accent-rgb),.16); }
-.prompt-composer textarea { height:clamp(105px,15vh,178px); min-height:90px; }
-.prompt-section .prompt-chips { margin:9px 0; gap:5px; }
-.prompt-section .prompt-chips button { padding:5px 7px; }
+.prompt-composer textarea { height:clamp(155px,25vh,310px); min-height:125px; font-size:13px; line-height:1.65; }
 .ratio-field--quick { margin-top:10px; }
 .ratio-field--quick .field-label { margin-bottom:5px; }
 .ratio-field--quick .ratio-option { height:29px; }
@@ -232,3 +230,67 @@
   .canvas-iteration-drawer .iteration-deck::before { backdrop-filter:none; background:#14241e; }
   .generation-settings-dialog::backdrop { backdrop-filter:none; background:#050b08e8; }
 }
+
+/* Canvas-first studio, flat rails and contextual controls. */
+.ark-app .app-content { padding:0 14px; }
+.ark-app .topbar { height:54px; gap:12px; margin-bottom:8px; }
+.ark-app .topbar .brand-lockup { min-width:144px; }
+.ark-app .studio-layout:not(.gallery-collapsed) { grid-template-columns:minmax(440px,1fr) minmax(300px,340px) minmax(244px,300px); gap:10px; }
+.ark-app .studio-layout:not(.gallery-collapsed)[data-library-side="left"] { grid-template-columns:minmax(244px,300px) minmax(440px,1fr) minmax(300px,340px); }
+.ark-app .studio-layout.gallery-collapsed { grid-template-columns:minmax(440px,1fr) minmax(300px,360px); gap:10px; }
+.ark-app .workspace-tabs { width:max-content; max-width:100%; height:36px; padding:3px; gap:2px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.025); margin:0 auto; }
+.ark-app .workspace-tabs .workspace-tab { min-width:0; padding:0 15px; font-size:12px; border-radius:999px; }
+.ark-app .workspace-tabs .tab-active-glow { border-radius:999px; }
+.ark-app .image-shell { margin-top:5px; }
+.ark-app .controls-panel { border-left:1px solid var(--line); border-radius:0; display:flex; flex-direction:column; }
+.ark-app .controls-panel .control-section { padding:13px 14px; border-bottom:0; }
+.ark-app .controls-panel .prompt-section { flex:1; display:flex; flex-direction:column; }
+.ark-app .controls-panel .prompt-composer { flex:1; display:flex; min-height:150px; background:var(--theme-field); box-shadow:none; }
+.ark-app .controls-panel .prompt-composer textarea { flex:1; min-height:150px; resize:vertical; }
+.ark-app .reference-card::after { display:none; }
+.reference-image-button { display:block; width:100%; height:100%; padding:0; border:0; background:transparent; cursor:pointer; }
+.ark-app .reference-card img { object-fit:contain; }
+.ark-app .reference-card:hover img { transform:none; }
+.ark-app .reference-index { background:#101410c9; padding:3px 6px; border-radius:4px; font-size:11px; top:6px; left:6px; pointer-events:none; }
+.ark-app .reference-actions { opacity:0; }
+.ark-app .reference-card:hover .reference-actions,.ark-app .reference-card:focus-within .reference-actions,.ark-app .reference-card.disabled .reference-actions { opacity:1; }
+.reference-muted-label { position:absolute; bottom:5px; left:5px; background:#101410cf; color:#fff; padding:3px 5px; border-radius:4px; font-size:10px; pointer-events:none; }
+.reference-add-stack { aspect-ratio:3/4; min-height:78px; display:grid; grid-template-rows:1fr 1fr; gap:6px; }
+.reference-add-stack button { display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px; border:1px dashed var(--line); border-radius:7px; background:transparent; color:var(--text-soft); font-size:11px; }
+.reference-add-stack button:hover { border-color:var(--accent); color:var(--accent); background:rgba(var(--accent-rgb),.07); }
+.ark-app .prompt-heading-actions { gap:2px; }
+.ark-app .prompt-heading-actions button { border:0; background:transparent; color:var(--text-soft); }
+.ark-app .prompt-heading-actions button:hover { color:var(--accent); background:rgba(var(--accent-rgb),.08); }
+.quick-generation-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.7fr); gap:8px; margin-top:14px; }
+.quick-generation-fields label { display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--text-soft); }
+.quick-generation-fields select { width:100%; min-height:34px; padding:4px 8px; border:1px solid var(--line); border-radius:6px; background:var(--theme-field); color:var(--text); font-size:12px; }
+.quick-generation-fields option { background:var(--theme-raised); }
+.ark-app .ratio-field--quick .field-label,.ark-app .ratio-option { font-size:12px; }
+.ark-app .prompt-output-summary { font-size:11px; margin:6px 0 10px; }
+.ark-app .generate-button { font-size:13px; flex-shrink:0; border-radius:8px; }
+.ark-app .generate-caption { font-size:10px; margin:6px 0 0; text-align:center; }
+.ark-app .generate-button:hover:not(:disabled) { transform:none; }
+.ark-app .gallery-panel { border-left:1px solid var(--line); border-radius:0; }
+.ark-app .gallery-heading { height:42px; padding:0 12px; border:0; }
+.ark-app .gallery-heading .gallery-import-button { width:30px; height:30px; min-height:30px; margin:0; border:0; background:transparent; }
+.ark-app .gallery-search { margin:4px 10px 8px; }
+.ark-app .gallery-search input,.ark-app .gallery-filters button { font-size:11px; }
+.ark-app .mini-library-panel .gallery-results-head { padding:7px 12px; font-size:10px; letter-spacing:0; }
+.ark-app .gallery-scroll { padding:0 10px 10px; mask-image:none; }
+.ark-app .ark-mini-masonry { display:grid; gap:6px; columns:auto; }
+.ark-app .ark-mini-masonry.columns-1 { grid-template-columns:1fr; }
+.ark-app .ark-mini-masonry.columns-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.ark-app .ark-mini-masonry.columns-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.ark-app .ark-mini-masonry.columns-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.ark-app .ark-mini-masonry-item { margin:0; }
+.ark-app .ark-library-tile--mini { aspect-ratio:4/3 !important; border-radius:5px; }
+.ark-app .ark-library-tile--mini img { object-fit:contain; }
+.ark-app .ark-library-tile--mini .ark-tile-info { opacity:0; }
+.ark-app .ark-library-tile--mini:hover .ark-tile-info,.ark-app .ark-library-tile--mini:focus-within .ark-tile-info { opacity:1; }
+.studio-connection-status { padding:10px 0; font-size:12px; color:var(--text-soft); }
+.ark-app .studio-status-alert { color:var(--accent); }
+.ark-app .viewport-foot { height:auto; min-height:var(--ark-canvas-footer-height); padding:5px 0; align-items:center; }
+.ark-app .image-shell:fullscreen { display:flex; flex-direction:column; background:#080b0a; }
+.ark-app .image-shell:fullscreen .image-stage { flex:1; min-height:0; height:auto; }
+.ark-app .image-shell:fullscreen .viewport-foot { flex-shrink:0; }
+@media (max-width:1180px) { .ark-app .app-content { min-width:1040px; } .ark-app .studio-layout:not(.gallery-collapsed) { grid-template-columns:minmax(440px,1fr) minmax(300px,320px) minmax(244px,270px); } .ark-app .studio-layout:not(.gallery-collapsed)[data-library-side="left"] { grid-template-columns:minmax(244px,270px) minmax(440px,1fr) minmax(300px,320px); } }
