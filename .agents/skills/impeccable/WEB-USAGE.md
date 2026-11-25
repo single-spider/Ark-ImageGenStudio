@@ -1,0 +1,3 @@
+# Using Impeccable from ChatGPT Web
+
+Upstream v4.11.0 Markdown skill and references from https://github.com/pbakaus/impeccable (Apache-2.0; see LICENSE and NOTICE.md). Read SKILL.md and only relevant command references on demand. This is a manual GitHub-backed documentation installation; native scripts, agent definitions and Live browser tooling are intentionally omitted. Substitute repository inspection and user-provided screenshots for unavailable local commands, and report any unverified rendering or tests. Do not claim native Live Mode is running. Preserve Ark behavior and scope changes to the requested UI.
