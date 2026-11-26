@@ -10,7 +10,7 @@ type Side = 'left' | 'right';
 type Placement = { id: Panel; x: number; y: number; w: number; h: number };
 const limits: Record<Panel, { minW: number; minH: number }> = {
   canvas: { minW: 6, minH: 6 },
-  controls: { minW: 5, minH: 5 },
+  controls: { minW: 5, minH: 8 },
   library: { minW: 4, minH: 5 },
 };
 const titles: Record<Panel, string> = { canvas: 'Canvas', controls: 'Studio controls', library: 'Library' };

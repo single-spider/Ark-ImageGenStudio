@@ -51,6 +51,15 @@ async function capture(page, name) {
     return { viewport: [innerWidth, innerHeight], document: [document.documentElement.scrollWidth, document.documentElement.scrollHeight], canvas: rect('.image-stage'), controls: rect('.controls-panel'), gallery: rect('.gallery-panel'), toolbar: rect('.ark-canvas-toolbar'), generate: rect('.generate-button'), failedVisibleImages: [...document.images].filter(i => i.getBoundingClientRect().top < innerHeight && i.complete && !i.naturalWidth).length };
   });
   report.screenshots.push({ name, layout });
+  if (layout.generate && layout.controls &&
+      (layout.generate.bottom > layout.controls.bottom + 1 ||
+       layout.generate.y < layout.controls.y ||
+       layout.generate.bottom > layout.viewport[1] + 1)) {
+    throw new Error('Generate action outside visible controls at ' + name);
+  }
+  if (layout.document[0] > layout.viewport[0] + 1 || layout.document[1] > layout.viewport[1] + 1) {
+    throw new Error('Workspace overflows the browser viewport at ' + name);
+  }
 }
 async function scenario(size) {
   const [width, height] = size;
@@ -75,8 +84,10 @@ async function scenario(size) {
       await capture(page, prefix + '-layout-edit');
       const handle = page.getByRole('button', { name: 'Move Library', exact: true });
       await handle.focus();
-      for (let i = 0; i < 5; i++) await handle.press('Shift+ArrowUp');
       const tile = page.locator('[data-panel="library"]');
+      const initialHeight = Number(await tile.getAttribute('gs-h') || 0);
+      for (let i = 0; i < 5; i++) await handle.press('Shift+ArrowUp');
+      if (Number(await tile.getAttribute('gs-h') || 0) >= initialHeight) throw new Error('Library keyboard resize failed');
       const beforeDrag = Number(await tile.getAttribute('gs-y') || 0);
       const bounds = await handle.boundingBox();
       const cellHeight = await page.locator('.ark-workspace-grid').evaluate(el => el.getBoundingClientRect().height / 24);
@@ -89,13 +100,20 @@ async function scenario(size) {
       if (afterDrag === beforeDrag) throw new Error('Library did not move during layout drag');
       await capture(page, prefix + '-layout-custom');
       await page.getByRole('button', { name: 'Lock workspace layout' }).click();
+      if (await page.locator('.ark-grid-handle:visible').count()) throw new Error('Layout handles visible after locking');
       await page.reload({ waitUntil: 'domcontentloaded' });
       await page.locator('.stage-image').waitFor({ state: 'visible' });
       if (Number(await tile.getAttribute('gs-y') || 0) !== afterDrag) throw new Error('Saved workspace was not restored');
       await capture(page, prefix + '-layout-persisted');
       await page.getByRole('button', { name: 'Edit workspace layout' }).click();
       await page.getByRole('button', { name: 'Reset workspace layout' }).click();
+      if (Number(await tile.getAttribute('gs-y') || 0) !== 0 || Number(await tile.getAttribute('gs-h') || 0) !== initialHeight) throw new Error('Reset did not restore the default geometry');
+      const prompt = page.getByRole('textbox', { name: 'Generation prompt' });
+      const originalPrompt = await prompt.inputValue();
+      await prompt.fill('GridStack state preservation test');
       await page.getByRole('button', { name: 'Lock workspace layout' }).click();
+      if (await prompt.inputValue() !== 'GridStack state preservation test') throw new Error('Prompt lost when locking workspace');
+      await prompt.fill(originalPrompt);
     }
     await page.locator('header button[aria-label="Collapse Mini Library"]').click();
     await capture(page, prefix + '-library-closed');

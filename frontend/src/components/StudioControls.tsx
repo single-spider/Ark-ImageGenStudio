@@ -140,6 +140,7 @@ export function StudioControls({
         <button type="button" className="icon-button soft" title="Studio shortcuts & help" aria-label="Studio controls help" onClick={() => onToast('Studio Controls', 'Attach references, pick aspect ratio, and press Ctrl+Enter to generate.')}><CircleHelp size={16} /></button>
       </div>
 
+      <div className="ark-controls-scroll">
       <section className={`control-section reference-section ${referenceOpen ? '' : 'references-collapsed'}`}>
         <div className="section-topline">
           <div><span className="section-kicker">INPUT MATERIAL</span><h3>References <span className="count-muted">/ {String(modelCfg.max_reference_images).padStart(2, '0')}</span></h3></div>
@@ -204,6 +205,9 @@ export function StudioControls({
           ))}
         </div>
         {ratioField('quick')}
+      </section>
+      </div>
+      <div className="ark-controls-generation">
         <div className="prompt-output-summary"><span>{model}</span><span>{resolution} · {pxSize.replace('x', '×')}{dryRun ? ' · DRY RUN' : ''}</span></div>
         <button type="button" className="generate-button" disabled={generating || !prompt.trim()} onClick={onGenerate}>
           <span className="generate-button-shine" />
@@ -214,7 +218,7 @@ export function StudioControls({
         {!isDesktopBackend && (
           <div className="generate-caption"><span className="preview-indicator" /> Browser preview: generated results are simulated <span>•</span> No API charges</div>
         )}
-      </section>
+      </div>
       {picker && pickerSlot && <ReferencePicker key={picker.id} anchor={picker.anchor} slot={pickerSlot} assets={assets}
         onClose={() => setPicker(null)}
         onPick={(asset) => { onReferencePick(picker.id, asset); setPicker(null); }}
