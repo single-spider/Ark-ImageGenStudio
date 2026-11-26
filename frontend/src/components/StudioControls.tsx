@@ -181,7 +181,7 @@ export function StudioControls({
               onDrop={event => { event.preventDefault(); if(dragId) onReferenceReorder(dragId,reference.id); setDragId(null); }}>
               <button className="ark-attachment-preview" type="button" aria-label={`Preview reference ${index+1}`} onClick={() => onReferencePreview(reference.id)}><img draggable={false} src={reference.src!} alt={`Reference ${index+1}`}/></button>
               <span className="reference-index">{index+1}</span>
-              {index >= modelCfg.max_reference_images && <span className="ark-reference-limit">Over model limit</span>}
+              {reference.enabled && attachments.slice(0,index+1).filter(r=>r.enabled).length > modelCfg.max_reference_images && <span className="ark-reference-limit">Over model limit</span>}
               <div className="reference-actions">
                 <button type="button" aria-label={reference.enabled ? 'Mute reference' : 'Enable reference'} title={reference.enabled ? 'Mute reference' : 'Enable reference'} aria-pressed={reference.enabled} onClick={() => onReferenceToggle(reference.id)}>{reference.enabled ? <Check size={12}/> : <Minus size={12}/>}</button>
                 <button type="button" className="ref-import" aria-label={`Replace reference ${index+1}`} title="Replace reference" onClick={event => openPicker(event.currentTarget, reference.id)}><ImagePlus size={13}/></button>

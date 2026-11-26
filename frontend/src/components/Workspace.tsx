@@ -261,7 +261,7 @@ export function Workspace({
 
         <div className="ark-canvas-overlay-tools">
           <ArkCanvasToolbar label="Canvas navigation and tools">
-            <button type="button" title="Fit image" aria-label="Fit image" disabled={loading || emptyReference} onClick={resetView}><Maximize2 size={17}/><span>Fit</span></button>
+            <button type="button" className="canvas-fit-button" title="Fit image" aria-label="Fit image" disabled={loading || emptyReference} onClick={resetView}><Maximize2 size={17}/><span>Fit</span></button>
             <button type="button" className="canvas-zoom-readout" title="Reset view" aria-label="Reset view" disabled={loading || emptyReference} onClick={resetView}>{Math.round(zoom)}%</button>
             <CanvasToolbarGroup>
               <button type="button" title="Zoom out" aria-label="Zoom out" disabled={loading || emptyReference} onClick={() => zoomAt(zoom / 1.25)}><Minus size={17}/></button>

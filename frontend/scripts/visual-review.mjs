@@ -79,6 +79,13 @@ async function scenario(size) {
     await page.goto(base, { waitUntil: 'domcontentloaded' });
     await page.locator('.stage-image').waitFor({ state: 'visible' });
     await capture(page, prefix + '-library-open');
+    const keyControls = await page.evaluate(()=>{
+      const scroll=document.querySelector('.ark-controls-scroll')?.getBoundingClientRect();
+      const ratio=document.querySelector('.ratio-field--quick')?.getBoundingClientRect();
+      const buttons=document.querySelector('.ark-prompt-commands')?.getBoundingClientRect();
+      return !!scroll&&!!ratio&&!!buttons&&ratio.bottom<=scroll.bottom+2&&buttons.bottom<=scroll.bottom+2;
+    });
+    if(!keyControls) throw new Error('Prompt history or aspect ratio clipped in default workspace at '+prefix);
     if (width === 1440) {
       await page.getByRole('button', { name: 'Edit workspace layout' }).click();
       await capture(page, prefix + '-layout-edit');
@@ -171,8 +178,22 @@ async function scenario(size) {
       await page.locator('.ark-attachment').last().hover();
       await page.locator('.ark-attachment').last().getByRole('button',{name:'Clear reference'}).click();
       if(await page.locator('.ark-attachment').count()!==count) throw new Error('Reference removal failed');
+      const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0ZkAAAAASUVORK5CYII=','base64');
+      await page.locator('.ark-reference-commands input[type=file]').setInputFiles({name:'test-reference.png',mimeType:'image/png',buffer:png});
+      if(await page.locator('.ark-attachment').count()!==count+1) throw new Error('File import did not append reference');
+      await page.locator('.ark-attachment').last().hover();
+      await page.locator('.ark-attachment').last().getByRole('button',{name:'Clear reference'}).click();
+      const paste = page.getByRole('button',{name:'Paste image',exact:true});
+      await paste.evaluate((el,bytes)=>{const data=new DataTransfer();data.items.add(new File([new Uint8Array(bytes)],'paste.png',{type:'image/png'}));el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));},Array.from(png));
+      if(await page.locator('.ark-attachment').count()!==count+1) throw new Error('Clipboard paste fallback failed');
+      await page.locator('.ark-attachment').last().hover();
+      await page.locator('.ark-attachment').last().getByRole('button',{name:'Clear reference'}).click();
+      await page.getByRole('tab',{name:'Main image'}).click();
       await page.getByRole('button',{name:'Prompt history',exact:true}).click();
       await capture(page,prefix+'-prompt-history');
+      const popup = await page.getByRole('dialog',{name:'Prompt history'}).boundingBox();
+      const panel = await page.locator('.controls-panel').boundingBox();
+      if(!popup||!panel||popup.x+popup.width>panel.x+1) throw new Error('History popup did not open toward canvas');
       await page.getByRole('button',{name:/^Restore prompt /}).first().click();
       if(!(await page.getByRole('textbox',{name:'Generation prompt'}).inputValue()).trim()) throw new Error('Prompt restore failed');
       if(await page.locator('.utility-section,.prompt-chips').count()) throw new Error('Retired controls remain');

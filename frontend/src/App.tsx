@@ -236,7 +236,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
       const remaining = assets.filter((a) => !idSet.has(a.id));
       setAssets(remaining);
       setReferences((cur) =>
-        cur.map((r) => (r.assetId && idSet.has(r.assetId) ? { ...r, src: null, assetId: undefined, enabled: false } : r)),
+        cur.filter(r => !r.assetId || !idSet.has(r.assetId)),
       );
       if (idSet.has(activeId) && remaining[0]) setActiveId(remaining[0].id);
       if (idSet.has(compareId) && remaining[0]) setCompareId(remaining[1]?.id ?? remaining[0].id);
@@ -470,6 +470,12 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
 
   async function generate() {
     if (generating || !prompt.trim()) return;
+    const enabledRefs = references.filter(r => r.enabled && r.src);
+    const branchExtra = branchOriginId && !enabledRefs.some(r => r.assetId === branchOriginId) ? 1 : 0;
+    if (enabledRefs.length + branchExtra > (SEEDREAM_MODELS[model]?.max_reference_images ?? 10)) {
+      toast('Reference limit exceeded', 'Mute or remove references before generating.');
+      return;
+    }
     recordPrompt({ prompt: prompt.trim(), model, ratio, resolution, createdAt: new Date().toISOString() });
     setGenerationModel(model);
     setGenerating(true);
