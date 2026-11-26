@@ -83,7 +83,7 @@ async function scenario(size) {
       await page.getByRole('button', { name: 'Open generation setup' }).click();
       await capture(page, prefix + '-generation-settings');
       await page.getByRole('button', { name: 'Close generation setup' }).click();
-      await page.getByRole('button', { name: 'Add image', exact: true }).click();
+      await page.locator('.reference-card .ref-import').first().click();
       await capture(page, prefix + '-reference-picker');
     }
   } catch (error) {

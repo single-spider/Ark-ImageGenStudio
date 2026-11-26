@@ -150,7 +150,9 @@
   background:rgba(var(--accent-rgb),.07);
 }
 .generation-gear:hover { background:rgba(var(--accent-rgb),.16); }
-.prompt-composer textarea { height:clamp(100px,20vh,230px); min-height:90px; font-size:13px; line-height:1.65; resize:vertical; }
+.prompt-composer textarea { height:clamp(105px,15vh,178px); min-height:90px; }
+.prompt-section .prompt-chips { margin:9px 0; gap:5px; }
+.prompt-section .prompt-chips button { padding:5px 7px; }
 .ratio-field--quick { margin-top:10px; }
 .ratio-field--quick .field-label { margin-bottom:5px; }
 .ratio-field--quick .ratio-option { height:29px; }
@@ -239,39 +241,6 @@
 .ark-app .stage-ambient { filter:blur(38px) brightness(.38) saturate(.68); }
 .ark-app .image-stage::after { background:none; }
 .ark-app .viewport-foot { min-height:58px; height:auto; padding:5px 0; }
-.ark-app .controls-panel { display:flex; flex-direction:column; }
-.ark-app .control-section { padding-top:12px; padding-bottom:12px; }
-.ark-app .reference-section { flex-shrink:0; }
-.ark-app .reference-grid { display:grid; grid-template-columns:minmax(0,1fr); align-items:stretch; gap:8px; }
-.ark-app .reference-grid:has(.reference-add-stack) { grid-template-columns:minmax(0,1fr) minmax(74px,32%); }
-.reference-items { display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 6px)/2); gap:6px; min-width:0; overflow-x:auto; scrollbar-width:thin; align-items:start; }
-.reference-items:empty { display:none; }
-.ark-app .reference-grid:has(.reference-items:empty) { grid-template-columns:1fr; }
-.ark-app .controls-panel .reference-card { aspect-ratio: .95; min-height:0; border-radius:9px; }
-.reference-image-button { width:100%; height:100%; padding:0; border:0; background:transparent; display:block; }
-.ark-app .reference-card img { object-fit:cover; }
-.ark-app .reference-card::after { display:none; }
-.ark-app .reference-index { background:#0e1814c9; padding:3px 6px; border-radius:5px; pointer-events:none; }
-.ark-app .reference-actions { opacity:0; }
-.ark-app .reference-card:hover .reference-actions,.ark-app .reference-card:focus-within .reference-actions,.ark-app .reference-card.disabled .reference-actions { opacity:1; }
-.reference-muted-label { position:absolute; bottom:5px; left:5px; background:#101a15dd; color:#e8e9df; border-radius:5px; padding:3px 5px; font-size:10px; pointer-events:none; }
-.reference-add-stack { display:grid; grid-template-rows:1fr 1fr; gap:6px; min-height:96px; }
-.reference-add-stack button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:5px; border:1px solid var(--line); border-radius:9px; background:linear-gradient(145deg,rgba(var(--accent-rgb),.055),transparent); color:var(--text-soft); font-size:11px; }
-.reference-add-stack button:hover { border-color:rgba(var(--accent-rgb),.5); color:var(--accent); }
-.ark-app .prompt-section { display:flex; flex-direction:column; flex:1 0 auto; min-height:0; padding-bottom:14px; }
-.ark-app .prompt-heading-actions { gap:3px; }
-.ark-app .prompt-heading-actions .text-icon-button { border-radius:7px; }
-.ark-app .prompt-heading-actions button:not(.generation-gear) { border:0; background:transparent; }
-.ark-app .prompt-composer { flex:0 0 auto; }
-.ark-app .prompt-composer textarea { display:block; width:100%; }
-.quick-generation-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.65fr); gap:9px; margin-top:12px; }
-.quick-generation-fields label { display:flex; flex-direction:column; gap:6px; font-size:11px; font-weight:600; color:var(--text-soft); }
-.quick-generation-fields select { min-width:0; width:100%; height:35px; padding:0 8px; border:1px solid var(--line); border-radius:8px; background:var(--theme-field); color:var(--text); font-size:12px; }
-.quick-generation-fields option { background:var(--theme-raised); }
-.ark-app .ratio-field--quick { margin-top:12px; margin-bottom:12px; }
-.ark-app .ratio-field--quick .field-label,.ark-app .ratio-option { font-size:11px; }
-.ark-app .generate-button { flex-shrink:0; margin-top:auto; font-size:13px; }
-.ark-app .generate-caption { font-size:10px; margin:7px 0 0; }
 .ark-app .gallery-heading { height:54px; flex-shrink:0; padding:0 15px; }
 .ark-app .gallery-heading h2 { font:600 24px/1.1 'Cormorant Garamond',serif; margin:0; color:var(--text); }
 .ark-app .gallery-heading .gallery-import-button { width:30px; min-height:30px; height:30px; margin:0; }
@@ -286,16 +255,3 @@
 .ark-app .image-shell:fullscreen { display:flex; flex-direction:column; background:#0b100f; }
 .ark-app .image-shell:fullscreen .image-stage { flex:1; height:auto; min-height:0; }
 .ark-app .image-shell:fullscreen .viewport-foot { flex-shrink:0; }
-@media(max-height:800px) {
-  .ark-app .controls-panel .control-section { padding-top:9px; padding-bottom:9px; }
-  .ark-app .controls-panel .section-topline { margin-bottom:7px; }
-  .ark-app .controls-panel .section-topline h3 { font-size:20px; }
-  .ark-app .controls-panel .reference-card { aspect-ratio:1.2; }
-  .reference-add-stack { min-height:75px; }
-  .reference-add-stack button { flex-direction:row; font-size:10px; gap:3px; padding:3px; }
-  .reference-add-stack button svg { width:13px; height:13px; }
-  .ark-app .prompt-composer textarea { height:100px; }
-  .quick-generation-fields { margin-top:8px; }
-  .ark-app .ratio-field--quick { margin-top:8px; margin-bottom:8px; }
-  .ark-app .controls-panel .generate-button { height:42px; }
-}
