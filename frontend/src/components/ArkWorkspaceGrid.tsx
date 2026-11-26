@@ -142,9 +142,10 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
     instance.current?.enableResize(editing);
   }, [editing, libraryOpen, resetToken]);
 
-  function moveByKeyboard(event: KeyboardEvent<HTMLButtonElement>, id: Panel) {
+  function moveByKeyboard(event: KeyboardEvent<HTMLDivElement>, id: Panel) {
     if (!editing || !instance.current || !gridRef.current) return;
-    const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+    const directions: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const delta = directions[event.key];
     if (!delta) return;
     event.preventDefault();
     const grid = instance.current;
@@ -164,9 +165,9 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
     return (
       <div key={id} className="ark-grid-item" data-panel={id} hidden={hidden}>
         <div className="grid-stack-item-content">
-          <button type="button" className="ark-grid-handle" tabIndex={editing ? 0 : -1}
+          <div role="button" className="ark-grid-handle" tabIndex={editing ? 0 : -1}
             aria-label={`Move ${titles[id]}`} title="Drag to move. Arrow keys move; Shift + arrows resize into free space."
-            onKeyDown={event => moveByKeyboard(event, id)}><GripHorizontal size={15}/><span>{titles[id]}</span></button>
+            onKeyDown={event => moveByKeyboard(event, id)}><GripHorizontal size={15}/><span>{titles[id]}</span></div>
           {content}
         </div>
       </div>
