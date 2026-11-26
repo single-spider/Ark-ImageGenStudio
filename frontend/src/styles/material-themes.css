@@ -238,3 +238,29 @@
 
 /* Restore the original theme-specific material surfaces and typography. */
 .ark-app:not([data-theme="nocturne"]) .gallery-heading h2 { font-family:Manrope,sans-serif; font-size:18px; }
+
+/* Slate: neutral viewing surround, layered steel-grey materials and cool silver accent. */
+:root[data-ark-theme="slate"],.ark-app[data-theme="slate"] {
+  --theme-base:#111419;--theme-panel:linear-gradient(145deg,#292e36,#1b2027 78%);
+  --theme-gallery:linear-gradient(160deg,#252b33,#1b2026);
+  --theme-dialog:linear-gradient(145deg,#353d48,#242a33 65%,#1b2027);
+  --theme-field:#171b22;--theme-raised:#343c47;--theme-menu:#252c36fa;
+  --theme-library:linear-gradient(135deg,#242a33,#15191f 75%);
+  --theme-sidebar:linear-gradient(180deg,#2b323d,#1c222a);
+  --theme-inspector:linear-gradient(180deg,#303844,#1e242d);
+  --theme-topbar:linear-gradient(90deg,#262d36,#191e25);
+  --theme-glass:linear-gradient(145deg,#e2e9f326,#a7b7cf19 32%,#303947a8 65%,#141922cf);
+  --theme-edge:#c7d4e42f;--theme-ink:#1a212b;
+  --theme-button:linear-gradient(115deg,#9baec7,#d0dbea 52%,#a7b9d0);
+  --theme-heading:'Cormorant Garamond',serif;--theme-heading-weight:600;
+  --theme-radius:14px;--theme-panel-blur:16px;
+  --theme-shadow:0 18px 55px #0006,inset 0 1px 0 #ffffff0c;
+  --accent:#b9c9df;--accent-rgb:185,201,223;--accent-dim:#9bafc9;
+  --text:#edf0f4;--text-soft:#c6cdd8;--muted:#9ba5b4;--line:#c9d4e21e;
+}
+.ark-app[data-theme="slate"] .background-vignette { background:radial-gradient(ellipse at 48% 0%,#343f4d66,transparent 68%),linear-gradient(145deg,#1b2027,#101318 75%); }
+.ark-app[data-theme="slate"] .background-grain { opacity:.035; }
+.ark-app[data-theme="slate"] .image-stage { background:#12151a; }
+.ark-app[data-theme="slate"] .image-stage::after { background:none; }
+.ark-app[data-theme="slate"] .stage-ambient { filter:blur(38px) brightness(.32) saturate(.25); }
+.ark-app[data-theme="slate"] .brand-mark { background:linear-gradient(140deg,#454e5c,#222830);color:var(--accent);border-color:var(--theme-edge); }

@@ -7,3 +7,5 @@ Each pass: implement one scope, commit to feat/studio-next, run Ark visual revie
 Pass 1: attachments and prompt controls/history. Keep backend ref_roles for compatibility, with neutral Reference role. History records submitted prompts in local browser storage and reconstructs older entries from available assets. Future Wild Studio remains explicitly reserved. Clipboard read depends on browser permissions; Ctrl+V and file import remain fallback.
 
 Next: vertical canvas tools, dock and visibility layout migration, Slate palette. Tests must cover left/right panel locations, all visibility combinations, resizing and persistence, clipboard/import, model limits, popup placement, and 1920x1080, 1440x900, 1280x720. Avoid using private assets or paid generation in CI.
+
+Pass 2: native vertical canvas toolbar, actual React Bits Dock (upstream license retained), independent Studio Controls visibility, and Slate default theme. Existing Forest/Nocturne colors retained as a legacy option. The dock contains only the two agreed panel toggles. Visual review captures the new theme and visibility states.

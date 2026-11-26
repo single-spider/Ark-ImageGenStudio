@@ -154,3 +154,22 @@
 .ark-history-restore {display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-align:left;border:0;background:transparent;color:var(--text);font-size:12px;line-height:1.5;padding:0;}
 .ark-history-list small{color:var(--muted);font-size:10px;display:block;margin-top:5px;}
 .ark-prompt-history .ark-ref-picker-head strong{display:flex;align-items:center;gap:8px;}
+
+/* Canvas-relative overlay; no toolbar footer or reserved canvas height. */
+.ark-workspace-grid .image-shell { position:relative; }
+.ark-canvas-overlay-tools { position:absolute;z-index:28;right:12px;top:50%;transform:translateY(-50%);max-height:calc(100% - 24px);pointer-events:none; }
+.ark-canvas-overlay-tools .ark-canvas-toolbar { position:relative;pointer-events:auto;display:flex;flex-direction:column;flex-wrap:nowrap;width:44px;gap:3px;padding:5px;min-height:0;max-height:100%;background:var(--theme-glass);border-color:var(--theme-edge);backdrop-filter:blur(16px); }
+.ark-canvas-overlay-tools .ark-canvas-toolbar button { flex-shrink:0;width:32px;height:31px;padding:0;min-width:0; }
+.ark-canvas-overlay-tools .canvas-fit-button { flex-direction:column;gap:0;height:37px; }
+.ark-canvas-overlay-tools .canvas-fit-button span { font-size:9px; }
+.ark-canvas-overlay-tools .canvas-zoom-readout { font-size:10px; }
+.ark-canvas-overlay-tools .ark-canvas-toolbar-group { flex-direction:column;padding:1px;gap:1px; }
+.ark-canvas-overlay-tools .ark-canvas-toolbar-group button { width:28px;height:27px; }
+.ark-canvas-overlay-tools .ark-canvas-toolbar-divider { height:1px;width:22px;margin:2px 0; }
+.ark-canvas-overlay-tools .canvas-iterations-button { gap:2px;font-size:10px; }
+.ark-canvas-context { position:absolute;right:calc(100% + 8px);top:50%;transform:translateY(-50%);background:var(--theme-dialog);border:1px solid var(--line);border-radius:14px;padding:4px;box-shadow:0 5px 18px #0006; }
+.ark-canvas-overlay-tools .ark-canvas-context .ark-canvas-toolbar-group { flex-direction:row;border:0; }
+.ark-workspace-grid .canvas-iteration-drawer { bottom:16px;right:66px; }
+.ark-app .ark-global-dock { position:fixed;z-index:90;bottom:12px; }
+.ark-app .studio-toast { z-index:100; }
+@media(max-height:780px) { .ark-canvas-overlay-tools .ark-canvas-toolbar { gap:1px;padding:4px; } .ark-canvas-overlay-tools .ark-canvas-toolbar button { height:26px; } }

@@ -15,13 +15,14 @@ const limits: Record<Panel, { minW: number; minH: number }> = {
 };
 const titles: Record<Panel, string> = { canvas: 'Canvas', controls: 'Studio controls', library: 'Library' };
 
-function defaultLayout(open: boolean, side: Side): Placement[] {
+function defaultLayout(open: boolean, side: Side, controlsOpen: boolean): Placement[] {
   const ids: Panel[] = open
     ? side === 'left' ? ['library', 'canvas', 'controls'] : ['canvas', 'controls', 'library']
     : ['canvas', 'controls'];
+  const visible = ids.filter(id => id !== 'controls' || controlsOpen);
   let x = 0;
-  return ids.map(id => {
-    const w = id === 'canvas' ? (open ? 12 : 18) : 6;
+  return visible.map(id => {
+    const w = id === 'canvas' ? COLS - (visible.length - 1)*6 : 6;
     const item = { id, x, y: 0, w, h: ROWS };
     x += w;
     return item;
@@ -92,11 +93,11 @@ type MoveDrag = {
   id: Panel; pointerId: number; startX: number; startY: number;
   layout: Placement[]; source: Placement; next: Placement[] | null;
 };
-function storageKey(open: boolean) { return STORAGE + (open ? ':open' : ':closed'); }
-function readLayout(open: boolean, side: Side): Placement[] {
-  const defaults = defaultLayout(open, side);
+function storageKey(open: boolean, controlsOpen: boolean) { return STORAGE + (open ? ':open' : ':closed') + (controlsOpen ? '' : ':controls-hidden'); }
+function readLayout(open: boolean, side: Side, controlsOpen: boolean): Placement[] {
+  const defaults = defaultLayout(open, side, controlsOpen);
   try {
-    const raw: unknown = JSON.parse(localStorage.getItem(storageKey(open)) || 'null');
+    const raw: unknown = JSON.parse(localStorage.getItem(storageKey(open, controlsOpen)) || 'null');
     if (validLayout(raw, defaults.map(item => item.id))) return raw;
   } catch { /* corrupt or unavailable storage: use the default workspace */ }
   return defaults;
@@ -111,6 +112,7 @@ function snapshot(grid: GridStack): Placement[] {
 
 interface Props {
   libraryOpen: boolean;
+  controlsOpen: boolean;
   initialSide: Side;
   editing: boolean;
   resetToken: number;
@@ -122,7 +124,7 @@ interface Props {
 /** React owns panel content; GridStack owns only its outer rectangles.
  * Panels stay mounted when the library is hidden or a workspace is reset.
  */
-export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken, canvas, controls, library }: Props) {
+export function ArkWorkspaceGrid({ libraryOpen, controlsOpen, initialSide, editing, resetToken, canvas, controls, library }: Props) {
   const shellRef = useRef<HTMLElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const instance = useRef<GridStack | null>(null);
@@ -137,10 +139,10 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
     const shell = shellRef.current;
     if (!el || !shell) return;
     if (lastReset.current !== resetToken) {
-      try { localStorage.removeItem(storageKey(libraryOpen)); } catch { /* optional */ }
+      try { localStorage.removeItem(storageKey(libraryOpen, controlsOpen)); } catch { /* optional */ }
       lastReset.current = resetToken;
     }
-    const layout = readLayout(libraryOpen, initialSide);
+    const layout = readLayout(libraryOpen, initialSide, controlsOpen);
     // Reset geometry on the existing DOM before GridStack reads it. React
     // retains ownership of the image, prompt, gallery and their local state.
     el.classList.add('grid-stack');
@@ -171,7 +173,7 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
       if (!editingRef.current) return;
       const next = snapshot(grid);
       if (!validLayout(next, ids)) return;
-      try { localStorage.setItem(storageKey(libraryOpen), JSON.stringify(next)); } catch { /* optional */ }
+      try { localStorage.setItem(storageKey(libraryOpen, controlsOpen), JSON.stringify(next)); } catch { /* optional */ }
     };
     grid.on('change', persist);
     grid.on('dragstop', persist);
@@ -187,12 +189,12 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
       grid.destroy(false);
       instance.current = null;
     };
-  }, [libraryOpen, initialSide, resetToken]);
+  }, [libraryOpen, initialSide, controlsOpen, resetToken]);
 
   useLayoutEffect(() => {
     instance.current?.enableMove(false);
     instance.current?.enableResize(editing);
-  }, [editing, libraryOpen, resetToken]);
+  }, [editing, libraryOpen, controlsOpen, resetToken]);
 
   function applyMove(next: Placement[]) {
     const grid = instance.current;
@@ -200,7 +202,7 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
     grid.load(next.map(p => ({ ...p, ...limits[p.id] })), false);
     const actual = snapshot(grid);
     if (validLayout(actual, next.map(p => p.id))) {
-      try { localStorage.setItem(storageKey(libraryOpen), JSON.stringify(actual)); } catch { /* optional */ }
+      try { localStorage.setItem(storageKey(libraryOpen, controlsOpen), JSON.stringify(actual)); } catch { /* optional */ }
     }
   }
 
@@ -294,7 +296,7 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
     <main className="ark-grid-shell" ref={shellRef} aria-label="Customizable studio workspace">
       <div className="grid-stack ark-workspace-grid" ref={gridRef} data-editing={editing}>
         {panel('canvas', canvas)}
-        {panel('controls', controls)}
+        {panel('controls', controls, !controlsOpen)}
         {panel('library', library, !libraryOpen)}
         {editing && preview && preview.layout.filter(p => {
           const old = dragRef.current?.layout.find(q => q.id === p.id);

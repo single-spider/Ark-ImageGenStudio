@@ -51,7 +51,7 @@ async function capture(page, name) {
     return { viewport: [innerWidth, innerHeight], document: [document.documentElement.scrollWidth, document.documentElement.scrollHeight], canvas: rect('.image-stage'), controls: rect('.controls-panel'), gallery: rect('.gallery-panel'), toolbar: rect('.ark-canvas-toolbar'), generate: rect('.generate-button'), failedVisibleImages: [...document.images].filter(i => i.getBoundingClientRect().top < innerHeight && i.complete && !i.naturalWidth).length };
   });
   report.screenshots.push({ name, layout });
-  if (layout.generate && layout.controls &&
+  if (layout.generate?.height && layout.controls?.height &&
       (layout.generate.bottom > layout.controls.bottom + 1 ||
        layout.generate.y < layout.controls.y ||
        layout.generate.bottom > layout.viewport[1] + 1)) {
@@ -65,7 +65,7 @@ async function scenario(size) {
   const [width, height] = size;
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
   await context.addInitScript(() => {
-    localStorage.setItem('ark-surface-theme', 'nocturne');
+    localStorage.setItem('ark-surface-theme', 'slate');
     localStorage.setItem('ark-mini-library-visible', 'true');
     localStorage.setItem('ark-mini-library-side', 'right');
     localStorage.setItem('ark-mini-columns', '2');
@@ -176,6 +176,15 @@ async function scenario(size) {
       await page.getByRole('button',{name:/^Restore prompt /}).first().click();
       if(!(await page.getByRole('textbox',{name:'Generation prompt'}).inputValue()).trim()) throw new Error('Prompt restore failed');
       if(await page.locator('.utility-section,.prompt-chips').count()) throw new Error('Retired controls remain');
+      await page.getByRole('button',{name:'Hide Studio Controls',exact:true}).click();
+      if(await page.locator('[data-panel="controls"]').isVisible()) throw new Error('Dock did not hide Studio Controls');
+      await capture(page,prefix+'-canvas-only');
+      await page.getByRole('button',{name:'Show Mini Library',exact:true}).last().click();
+      if(!(await page.locator('[data-panel="library"]').isVisible())) throw new Error('Dock did not restore library');
+      await capture(page,prefix+'-canvas-library');
+      await page.getByRole('button',{name:'Show Studio Controls',exact:true}).click();
+      if(!(await page.locator('[data-panel="controls"]').isVisible())) throw new Error('Dock did not restore Studio Controls');
+      await capture(page,prefix+'-dock-restored');
     }
   } catch (error) {
     report.errors.push({ viewport: size, message: error.message });

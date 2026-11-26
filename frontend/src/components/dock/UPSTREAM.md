@@ -1,0 +1,1 @@
+React Bits Dock from https://github.com/DavidHDev/react-bits/tree/main/src/ts-default/Components/Dock. Included as part of the Ark application under the accompanying license. The upstream component is retained without visual or behavioral changes.

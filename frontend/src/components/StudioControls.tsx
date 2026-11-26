@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ReferencePicker } from './ReferencePicker';
 import { motion } from 'motion/react';
-import { ArrowUpRight, Check, ChevronDown, ChevronUp, CircleHelp, Clipboard, Copy, Eye, EyeOff, ImagePlus, LoaderCircle, Minus, Plus, Settings, Sparkles, TestTube, WandSparkles, X, ClipboardPaste, FolderOpen, Layers, History, LibraryBig } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ChevronUp, CircleHelp, Clipboard, Eye, EyeOff, ImagePlus, LoaderCircle, Minus, Plus, Settings, Sparkles, TestTube, WandSparkles, X, ClipboardPaste, FolderOpen, Layers, History, LibraryBig } from 'lucide-react';
 import { PromptHistory } from './PromptHistory';
 import { SEEDREAM_MODELS, type AspectRatio, type ReferenceSlot, type StudioAsset } from '../types/studio';
 
 interface StudioControlsProps {
+  visible?: boolean;
   references: ReferenceSlot[];
   assets: StudioAsset[];
   onReferencePick: (slotId: string, asset: StudioAsset) => void;
@@ -43,7 +44,7 @@ const quickRatios: AspectRatio[] = ['1:1', '4:3', '3:4', '16:9', '9:16'];
 const models = Object.keys(SEEDREAM_MODELS);
 
 export function StudioControls({
-  assets, references, onReferencePick, prompt, negativePrompt, model, ratio, resolution, seed, creativity,
+  visible = true, assets, references, onReferencePick, prompt, negativePrompt, model, ratio, resolution, seed, creativity,
   generating, isDesktopBackend = false, dryRun = false, apiConfig, onDryRunChange, onSaveApiConfig, onTestApi, onReferencePreview, onReferenceReorder,
   onReferenceImport, onReferenceToggle, onReferenceClear,
   onPromptChange, onNegativePromptChange, onModelChange, onRatioChange,
@@ -70,6 +71,7 @@ export function StudioControls({
   const ratios = availableRatios.length ? availableRatios : quickRatios;
   const pxSize = modelCfg.resolutions[resolution]?.[ratio] || '2048x2048';
 
+  useEffect(() => { if (!visible) { setPicker(null); setHistoryAnchor(null); setManageOpen(false); settingsRef.current?.close(); } }, [visible]);
   const attachments = references.filter(r => r.src);
   const remaining = Math.max(0, modelCfg.max_reference_images - attachments.length);
   function newId() { return 'ref-' + crypto.randomUUID(); }

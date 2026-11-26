@@ -9,6 +9,7 @@ import { Workspace } from './components/Workspace';
 import { ArkWorkspaceGrid } from './components/ArkWorkspaceGrid';
 import { initialReferences, mockAssets } from './data/mock';
 import { recordPrompt } from './lib/prompt-history';
+import Dock from './components/dock/Dock';
 import { mockStudioApi } from './lib/api';
 import { backendAssetToStudio } from './lib/backend-asset-mapper';
 import { createBrowserBackend, createDesktopBackend, detectLocalBackend, nativeOpenFolder } from './lib/backend-client';
@@ -43,8 +44,9 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
   const [theme, setTheme] = useState<StudioTheme>(() => {
     try {
       const saved = localStorage.getItem('ark-surface-theme');
-      return saved === 'mineral' || saved === 'ember' || saved === 'graphite' ? saved : 'nocturne';
-    } catch { return 'nocturne'; }
+      if (saved === 'nocturne' && localStorage.getItem('ark-slate-theme-migrated') === 'true') return 'nocturne';
+      return saved === 'mineral' || saved === 'ember' || saved === 'graphite' || saved === 'slate' ? saved : 'slate';
+    } catch { return 'slate'; }
   });
   const [prompt, setPrompt] = useState(backend ? '' : defaultPrompt);
   const [negativePrompt, setNegativePrompt] = useState('Oversaturated, blurry, plastic textures, distorted geometry');
@@ -78,6 +80,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
   const [generationModel, setGenerationModel] = useState('Seedream 5.5');
   const [notice, setNotice] = useState<StudioNotice | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(() => { try { return localStorage.getItem('ark-controls-visible') !== 'false'; } catch { return true; } });
+  useEffect(() => { try { localStorage.setItem('ark-controls-visible',String(controlsOpen)); } catch { /* optional */ } }, [controlsOpen]);
   const [miniLibraryOpen, setMiniLibraryOpen] = useState(() => {
     try { return window.localStorage.getItem('ark-mini-library-visible') !== 'false'; }
     catch { return true; }
@@ -295,7 +299,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
 
   useEffect(() => {
     document.documentElement.dataset.arkTheme = theme;
-    try { localStorage.setItem('ark-surface-theme', theme); }
+    try { localStorage.setItem('ark-surface-theme', theme); localStorage.setItem('ark-slate-theme-migrated','true'); }
     catch { /* Storage is optional. */ }
   }, [theme]);
 
@@ -584,13 +588,13 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
             {layoutEditing && <button type="button" className="ark-topbar-library-button" aria-label="Reset workspace layout" title="Reset the current workspace layout" onClick={() => setLayoutReset((value) => value + 1)}><RotateCcw size={15}/></button>}
           </div>
           <div className="topbar-spacer" />
-          <div className="theme-selector"><Palette size={15} /><select aria-label="Color theme" value={theme} onChange={(event) => setTheme(event.target.value as StudioTheme)}><option value="nocturne">Nocturne</option><option value="mineral">Mineral</option><option value="ember">Ember</option><option value="graphite">Graphite</option></select><ChevronDown size={12} /></div>
+          <div className="theme-selector"><Palette size={15} /><select aria-label="Color theme" value={theme} onChange={(event) => setTheme(event.target.value as StudioTheme)}><option value="slate">Slate</option><option value="nocturne">Forest (legacy)</option><option value="mineral">Mineral</option><option value="ember">Ember</option><option value="graphite">Graphite</option></select><ChevronDown size={12} /></div>
           {backend && !isBrowserBridge && /stopped|not responding|error|failed/i.test(sorterLabel) && <button type="button" className="topbar-icon studio-status-alert" title={sorterLabel} aria-label={sorterLabel} onClick={() => setAppSettingsOpen(true)}><CircleHelp size={17}/></button>}
           <button type="button" className="topbar-icon" title="Studio settings & privacy filter" aria-label="Studio settings" onClick={() => setAppSettingsOpen(true)}><Settings size={17} /></button>
           <button type="button" className="topbar-icon" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => setHelpOpen(true)}><CircleHelp size={18} /></button>
         </header>
 
-        <ArkWorkspaceGrid libraryOpen={miniLibraryOpen} initialSide={miniLibrarySide} editing={layoutEditing} resetToken={layoutReset}
+        <ArkWorkspaceGrid controlsOpen={controlsOpen} libraryOpen={miniLibraryOpen} initialSide={miniLibrarySide} editing={layoutEditing} resetToken={layoutReset}
           canvas={<Workspace
             assets={assets} activeAsset={activeAsset} compareAsset={compareAsset} referenceAsset={referenceAsset}
             generating={generating} generationModel={generationModel}
@@ -601,7 +605,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
             onSendToReference={addAsReference} onDeleteAsset={deleteAsset}
             onToggleKeeper={toggleKeeper} onToast={toast}
           />}
-          controls={<StudioControls
+          controls={<StudioControls visible={controlsOpen}
             assets={assets} references={references} onReferencePick={pickReference} prompt={prompt} negativePrompt={negativePrompt}
             model={model} ratio={ratio} resolution={resolution} seed={seed}
             creativity={creativity} generating={generating}
@@ -659,6 +663,10 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
 
       </div>
 
+      {!fullLibraryOpen && !covered && <Dock className="ark-global-dock" position="bottom" baseItemSize={44} magnification={60} distance={140} panelHeight={58} gap={8} bounce={false} accentColor="var(--accent)" items={[
+        { icon: <Settings size={21}/>, label: controlsOpen ? 'Hide Studio Controls' : 'Show Studio Controls', active: controlsOpen, onClick: () => setControlsOpen(open=>!open) },
+        { icon: <Images size={21}/>, label: miniLibraryOpen ? 'Hide Mini Library' : 'Show Mini Library', active: miniLibraryOpen, onClick: () => setMiniLibraryOpen(open=>!open) },
+      ]}/>}
       {fullLibraryOpen && (
         <FullLibrary
           assets={assets}
