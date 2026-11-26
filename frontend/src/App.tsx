@@ -554,6 +554,9 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
 
   return (
     <div className="ark-app" data-theme={theme} data-mini-library={miniLibraryOpen ? "open" : "closed"}>
+      <div className="background-photo" />
+      <div className="background-vignette" />
+      <div className="background-grain" />
       <div className="app-content">
         <header className="topbar">
           <div className="brand-lockup">

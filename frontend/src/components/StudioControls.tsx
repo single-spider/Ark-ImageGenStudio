@@ -161,6 +161,7 @@ export function StudioControls({
           <button type="button" className="text-icon-button" aria-label={referenceOpen ? 'Collapse references' : 'Expand references'} title={referenceOpen ? 'Collapse references' : 'Expand references'} onClick={() => { setPicker(null); setReferenceOpen((open) => !open); }} aria-expanded={referenceOpen}>{referenceOpen ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}</button>
         </div>
         {referenceOpen && <div className="reference-grid">
+          <div className="reference-items">
           {usableReferences.map((ref, index) => ref.src && <div className={`reference-card ${!ref.enabled ? 'disabled' : ''}`} key={ref.id}>
             <button type="button" className="reference-image-button" title={`Replace reference ${index+1}`} aria-label={`Replace reference ${index+1}`} aria-haspopup="dialog" aria-expanded={picker?.id === ref.id} onClick={(event) => setPicker({id:ref.id,anchor:event.currentTarget})}><img src={ref.src} alt={`Reference ${index+1}`}/></button>
             <span className="reference-index">{index+1}</span>
@@ -170,6 +171,7 @@ export function StudioControls({
               <button type="button" title="Clear reference" aria-label="Clear reference" onClick={() => onReferenceClear(ref.id)}><X size={14}/></button>
             </div>
           </div>)}
+          </div>
           {canAdd && <div className="reference-add-stack">
             <button type="button" aria-haspopup="dialog" onClick={(event) => { const id=reserveReference(); if(id) setPicker({id,anchor:event.currentTarget}); }}><ImagePlus size={19}/><span>Add image</span></button>
             <button type="button" onClick={() => { void pasteReference(); }} onPaste={(event) => { const file=Array.from(event.clipboardData.files).find((item) => item.type.startsWith('image/')); if(file) { event.preventDefault(); pasteFile(file); } }}><Clipboard size={17}/><span>Paste image</span></button>
@@ -197,8 +199,9 @@ export function StudioControls({
           <label>Resolution<select aria-label="Resolution" value={resolution} onChange={(event) => onResolutionChange(event.target.value)}>{availableResolutions.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         </div>
         {ratioField('quick')}
-        <div className="prompt-output-summary"><span>{pxSize.replace('x','×')}</span>{dryRun && <span>Dry run</span>}</div>
+        {dryRun && <div className="prompt-output-summary"><span>Dry run</span></div>}
         <button type="button" className="generate-button" disabled={generating || !prompt.trim()} onClick={onGenerate}>
+          <span className="generate-button-shine" />
           {generating ? <LoaderCircle className="spin" size={19} /> : <Sparkles size={19} />}
           <span>{generating ? (dryRun ? 'Simulating (Dry Run)…' : 'Generating…') : 'Generate image'}</span>
         </button>

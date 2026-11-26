@@ -129,7 +129,14 @@
 .ark-app[data-theme="graphite"] .background-grain { opacity:0; }
 .ark-app[data-theme="mineral"] .background-grain { opacity:.055; }
 .ark-app[data-theme="ember"] .background-grain { opacity:.08; }
-.controls-panel,.gallery-panel { border:0; border-radius:8px; background:var(--theme-base); box-shadow:none; backdrop-filter:none; }
+.controls-panel,.gallery-panel {
+  border-color:var(--line);
+  border-radius:var(--theme-radius);
+  background:var(--theme-panel);
+  box-shadow:var(--theme-shadow);
+  backdrop-filter:blur(var(--theme-panel-blur));
+}
+.gallery-panel { background:var(--theme-gallery); }
 .ark-full-library { background:var(--theme-library); box-shadow:0 0 0 100vmax var(--theme-base); }
 .ark-library-topbar,.ark-library-footer { background:var(--theme-topbar); border-color:var(--line); }
 .ark-library-sidebar { background:var(--theme-sidebar); border-color:var(--line); }
@@ -171,7 +178,7 @@
 .ark-app:not([data-theme="nocturne"]) :is(.crumb-title,.theme-selector select,.field-label,.reference-title,.ark-sidebar-nav button,.ark-library-breadcrumb,.ark-library-footer,.ark-library-inspector-toggle,.ark-inspector-facts dd,.ark-inspector-ids dd,.ark-inspector-prompt,.workspace-tab,.utility-shelf button,.topbar-icon,.ark-topbar-library-button,.gallery-filters button,.ratio-option,.text-icon-button,.viewport-zoom button,.ark-library-sort select,.prompt-chips button,.section-topline h3,.gallery-title-row h2) { color:var(--text-soft); }
 .ark-app:not([data-theme="nocturne"]) :is(.crumb-kicker,.crumb-code,.heading-subtitle,.workspace-meta,.tabs-tail,.foot-image-meta,.field-hint,.reference-foot,.prompt-char-count,.prompt-composer-bottom,.generate-caption,.gallery-results-head,.mini-library-expand,.ark-library-grid-summary,.ark-library-workhead p,.ark-sidebar-nav button small,.ark-library-sidebar-foot,.ark-inspector-facts dt,.ark-inspector-ids dt,.ark-inspector-safety,.statusbar,.muted-icon) { color:var(--muted); }
 .ark-app:not([data-theme="nocturne"]) :is(.workspace-tab.active,.ratio-option.active,.gallery-filters button.active,.gallery-filters button.active-icon,.ark-sidebar-nav button.active,.generation-gear,.ark-topbar-library-button.active) { color:var(--accent); }
-.generate-button { background:var(--accent); color:var(--theme-ink); border:0; box-shadow:none; }
+.generate-button { background:var(--theme-button); color:var(--theme-ink); }
 .generation-settings-footer button,.ark-inspector-primary-actions button.primary,.ark-tile-selected,.iteration-selected-mark { color:var(--theme-ink); }
 .canvas-glass { background:var(--theme-glass); border-color:var(--theme-edge); }
 .canvas-top-dock .image-keeper.is-keeper { background:linear-gradient(145deg,rgba(var(--accent-rgb),.24),var(--theme-field)); }
@@ -180,7 +187,7 @@
 .ark-app:not([data-theme="nocturne"]) .image-stage { background:var(--theme-field); }
 .ark-app:not([data-theme="nocturne"]) :is(.reference-empty,.ark-library-tile) { background:var(--theme-raised); }
 .ark-app[data-theme="graphite"] .utility-shelf button { background:#262629; }
-
+.ark-app[data-theme="graphite"] .controls-panel,.ark-app[data-theme="graphite"] .gallery-panel { box-shadow:var(--theme-shadow); border-color:#ffffff20; }
 /* Neutralize remaining green-tinted button text in the independently portaled menu. */
 .ark-asset-menu > button[role="menuitem"] { color:var(--text-soft); }
 .ark-asset-menu > button[role="menuitem"].danger { color:#e7a39a; }
@@ -229,5 +236,5 @@
   .canvas-glass,.canvas-iteration-drawer .iteration-deck::before { background:var(--theme-raised); backdrop-filter:none; }
 }
 
-.ark-app[data-theme] .controls-panel .section-topline h3,.ark-app[data-theme] .gallery-heading h2 { font:700 14px/1.35 Manrope,sans-serif; letter-spacing:0; color:var(--text); margin:0; }
-.ark-app[data-theme] .image-stage { background:#080b0a; }
+/* Restore the original theme-specific material surfaces and typography. */
+.ark-app:not([data-theme="nocturne"]) .gallery-heading h2 { font-family:Manrope,sans-serif; font-size:18px; }

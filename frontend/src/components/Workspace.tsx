@@ -211,6 +211,7 @@ export function Workspace({
           aria-label="Interactive image canvas"
         >
           {loading ? <GenerationMatrix model={generationModel}/> : emptyReference ? <div className="canvas-reference-empty">Choose an image in References to preview it here.</div> : <>
+          <div className="stage-ambient" style={{ backgroundImage: `url("${source.src}")` }} />
           <div ref={transformRef} className="stage-image-transform" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})` }}>
             {tool === 'compare' && tab === 'main' ? (
               <ArkImageComparison
