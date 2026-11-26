@@ -17,3 +17,5 @@ void detectBrowserBridge().then((bridge) => ReactDOM.createRoot(document.getElem
 ));
 
 import './styles/canvas-modes.css';
+import 'gridstack/dist/gridstack.min.css';
+import './styles/workspace-grid.css';

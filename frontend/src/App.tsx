@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeftRight, Check, ChevronDown, CircleHelp, Eye, EyeOff, FolderOpen, Images, Monitor, Palette, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, Settings, Shield, Sparkles, TestTube, X } from 'lucide-react';
+import { Check, ChevronDown, CircleHelp, Eye, EyeOff, FolderOpen, Images, LayoutDashboard, Lock, Monitor, Palette, PanelRightClose, PanelRightOpen, RefreshCw, RotateCcw, Settings, Shield, Sparkles, TestTube, X } from 'lucide-react';
 import { Gallery } from './components/Gallery';
 import { FullLibrary } from './components/FullLibrary';
 import { MultiSelectBar } from './components/library/MultiSelectBar';
 import { StudioControls } from './components/StudioControls';
 import { Workspace } from './components/Workspace';
+import { ArkWorkspaceGrid } from './components/ArkWorkspaceGrid';
 import { initialReferences, mockAssets } from './data/mock';
 import { mockStudioApi } from './lib/api';
 import { backendAssetToStudio } from './lib/backend-asset-mapper';
@@ -82,10 +83,12 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
     try { return window.localStorage.getItem('ark-mini-library-visible') !== 'false'; }
     catch { return true; }
   });
-  const [miniLibrarySide, setMiniLibrarySide] = useState<'left' | 'right'>(() => {
+  const [miniLibrarySide] = useState<'left' | 'right'>(() => {
     try { return window.localStorage.getItem('ark-mini-library-side') === 'left' ? 'left' : 'right'; }
     catch { return 'right'; }
   });
+  const [layoutEditing, setLayoutEditing] = useState(false);
+  const [layoutReset, setLayoutReset] = useState(0);
   const [fullLibraryOpen, setFullLibraryOpen] = useState(false);
   const [libraryInspectId, setLibraryInspectId] = useState<string | null>(null);
   const [branchOriginId, setBranchOriginId] = useState<string | null>(null);
@@ -568,14 +571,14 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
               <Images size={16}/><span>Library</span>
             </button>
             <button type="button" className={`ark-topbar-library-button ${miniLibraryOpen ? 'active' : ''}`} title={miniLibraryOpen ? 'Collapse Mini Library (L)' : 'Show Mini Library (L)'} aria-label={miniLibraryOpen ? 'Collapse Mini Library' : 'Show Mini Library'} aria-pressed={miniLibraryOpen} onClick={() => setMiniLibraryOpen((open) => !open)}>
-              {miniLibrarySide === 'left'
-                ? (miniLibraryOpen ? <PanelLeftClose size={17}/> : <PanelLeftOpen size={17}/>)
-                : (miniLibraryOpen ? <PanelRightClose size={17}/> : <PanelRightOpen size={17}/> )}
+              {miniLibraryOpen ? <PanelRightClose size={17}/> : <PanelRightOpen size={17}/>}
+
               <span>Mini</span>
             </button>
-            <button type="button" className="ark-topbar-library-button mini-side-toggle" title={`Move Mini Library to ${miniLibrarySide === 'left' ? 'right' : 'left'}`} aria-label={`Move Mini Library to ${miniLibrarySide === 'left' ? 'right' : 'left'}`} onClick={() => setMiniLibrarySide((side) => side === 'left' ? 'right' : 'left')}>
-              <ArrowLeftRight size={15}/>
+            <button type="button" className={`ark-topbar-library-button ark-layout-toggle ${layoutEditing ? 'active' : ''}`} title={layoutEditing ? 'Lock workspace layout' : 'Edit workspace layout'} aria-label={layoutEditing ? 'Lock workspace layout' : 'Edit workspace layout'} aria-pressed={layoutEditing} onClick={() => setLayoutEditing((value) => !value)}>
+              {layoutEditing ? <Lock size={16}/> : <LayoutDashboard size={16}/>}<span>{layoutEditing ? 'Done' : 'Layout'}</span>
             </button>
+            {layoutEditing && <button type="button" className="ark-topbar-library-button" aria-label="Reset workspace layout" title="Reset the current workspace layout" onClick={() => setLayoutReset((value) => value + 1)}><RotateCcw size={15}/></button>}
           </div>
           <div className="topbar-spacer" />
           <div className="theme-selector"><Palette size={15} /><select aria-label="Color theme" value={theme} onChange={(event) => setTheme(event.target.value as StudioTheme)}><option value="nocturne">Nocturne</option><option value="mineral">Mineral</option><option value="ember">Ember</option><option value="graphite">Graphite</option></select><ChevronDown size={12} /></div>
@@ -584,8 +587,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
           <button type="button" className="topbar-icon" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" onClick={() => setHelpOpen(true)}><CircleHelp size={18} /></button>
         </header>
 
-        <main className={`studio-layout ${miniLibraryOpen ? '' : 'gallery-collapsed'}`} data-library-side={miniLibrarySide}>
-          <Workspace
+        <ArkWorkspaceGrid libraryOpen={miniLibraryOpen} initialSide={miniLibrarySide} editing={layoutEditing} resetToken={layoutReset}
+          canvas={<Workspace
             assets={assets} activeAsset={activeAsset} compareAsset={compareAsset} referenceAsset={referenceAsset}
             generating={generating} generationModel={generationModel}
             tab={tab} tool={tool} zoom={zoom} onTabChange={setTab} onToolChange={setTool}
@@ -594,8 +597,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
             onCompareAsset={compareWith} onBranchAsset={branchFrom}
             onSendToReference={addAsReference} onDeleteAsset={deleteAsset}
             onToggleKeeper={toggleKeeper} onToast={toast}
-          />
-          <StudioControls
+          />}
+          controls={<StudioControls
             assets={assets} references={references} onReferencePick={pickReference} prompt={prompt} negativePrompt={negativePrompt}
             model={model} ratio={ratio} resolution={resolution} seed={seed}
             creativity={creativity} generating={generating}
@@ -632,8 +635,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
             onRatioChange={setRatio}
             onResolutionChange={setResolution} onSeedChange={setSeed}
             onCreativityChange={setCreativity} onGenerate={() => { void generate(); }} onToast={toast}
-          />
-          <Gallery
+          />}
+          library={<Gallery
             assets={assets} activeId={activeId}
             selectedIds={selectedIds}
             multiSelectMode={multiSelectMode}
@@ -647,8 +650,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
             onCompare={compareWith}
             onAddReference={addAsReference} onDelete={deleteAsset}
             onImport={importGallery} onToast={toast}
-          />
-        </main>
+          />}
+        />
 
       </div>
 
@@ -740,13 +743,13 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 12, opacity: 0.8 }}>Mini Library Placement</span>
+                  <span style={{ fontSize: 12, opacity: 0.8 }}>Workspace layout</span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button type="button" className="text-icon-button" onClick={() => setMiniLibraryOpen((v) => !v)} style={{ padding: '4px 10px', fontSize: 12 }}>
                       {miniLibraryOpen ? 'Hide Mini' : 'Show Mini'}
                     </button>
-                    <button type="button" className="text-icon-button" onClick={() => setMiniLibrarySide((s) => s === 'left' ? 'right' : 'left')} style={{ padding: '4px 10px', fontSize: 12 }}>
-                      Side: {miniLibrarySide === 'left' ? 'Left' : 'Right'}
+                    <button type="button" className="text-icon-button" onClick={() => { setAppSettingsOpen(false); setLayoutEditing(true); }} style={{ padding: '4px 10px', fontSize: 12 }}>
+                      Edit layout
                     </button>
                     {backend && (
                       <button type="button" className="text-icon-button" onClick={() => { setAppSettingsOpen(false); setCovered(true); }} style={{ padding: '4px 10px', fontSize: 12 }}>

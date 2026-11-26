@@ -70,6 +70,33 @@ async function scenario(size) {
     await page.goto(base, { waitUntil: 'domcontentloaded' });
     await page.locator('.stage-image').waitFor({ state: 'visible' });
     await capture(page, prefix + '-library-open');
+    if (width === 1440) {
+      await page.getByRole('button', { name: 'Edit workspace layout' }).click();
+      await capture(page, prefix + '-layout-edit');
+      const handle = page.getByRole('button', { name: 'Move Library', exact: true });
+      await handle.focus();
+      for (let i = 0; i < 5; i++) await handle.press('Shift+ArrowUp');
+      const tile = page.locator('[data-panel="library"]');
+      const beforeDrag = Number(await tile.getAttribute('gs-y') || 0);
+      const bounds = await handle.boundingBox();
+      const cellHeight = await page.locator('.ark-workspace-grid').evaluate(el => el.getBoundingClientRect().height / 24);
+      if (!bounds) throw new Error('Library drag handle is not visible');
+      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2 + cellHeight * 3, { steps: 12 });
+      await page.mouse.up();
+      const afterDrag = Number(await tile.getAttribute('gs-y') || 0);
+      if (afterDrag === beforeDrag) throw new Error('Library did not move during layout drag');
+      await capture(page, prefix + '-layout-custom');
+      await page.getByRole('button', { name: 'Lock workspace layout' }).click();
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.locator('.stage-image').waitFor({ state: 'visible' });
+      if (Number(await tile.getAttribute('gs-y') || 0) !== afterDrag) throw new Error('Saved workspace was not restored');
+      await capture(page, prefix + '-layout-persisted');
+      await page.getByRole('button', { name: 'Edit workspace layout' }).click();
+      await page.getByRole('button', { name: 'Reset workspace layout' }).click();
+      await page.getByRole('button', { name: 'Lock workspace layout' }).click();
+    }
     await page.locator('header button[aria-label="Collapse Mini Library"]').click();
     await capture(page, prefix + '-library-closed');
     if (width === 1440) {
