@@ -11,6 +11,7 @@ import type {
   BackendBootstrap,
   BackendJob,
   BackendSocketEvent,
+  BackendWorkflowLog,
 } from './backend-types';
 
 export interface LocalBackendConnection {
@@ -128,6 +129,8 @@ export function createDesktopBackend(connection: LocalBackendConnection, bridge 
     }) => request<{ jobs: BackendJob[] }>('POST', '/api/generate', payload),
     cancelJob: (jobId: string) =>
       request<{ ok: boolean }>('POST', `/api/jobs/${encodeURIComponent(jobId)}/cancel`),
+    listJobs: () => request<{ jobs: BackendJob[] }>('GET', '/api/jobs'),
+    listLogs: () => request<{ logs: BackendWorkflowLog[] }>('GET', '/api/logs'),
     saveConfig: (cfg: Record<string, unknown>) =>
       request<{ ok: boolean }>('POST', '/api/config', cfg),
     dryRun: () => request<{ success: boolean; message?: string; error?: string }>('POST', '/api/dry-run'),

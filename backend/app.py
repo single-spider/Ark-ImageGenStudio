@@ -24,7 +24,7 @@ from watchdog.observers import Observer
 
 from image_library import IMAGE_EXTENSIONS, atomic_json, contained_file, heartbeat, read_json, sorter_health
 from v2.backend import db
-from v2.backend.jobs import bus, queue
+from v2.backend.jobs import bus, queue, workflow_logs
 
 SESSION_TOKEN = os.environ.get("ARK_V2_TOKEN", "")
 FRONTEND_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
@@ -473,6 +473,16 @@ def api_delete_asset(asset_id: str):
 def api_generate(req: GenerateRequest):
     jobs = queue.enqueue(req.model_dump())
     return {"jobs": jobs}
+
+
+@app.get("/api/jobs")
+def api_list_jobs():
+    return {"jobs": queue.list_recent(40)}
+
+
+@app.get("/api/logs")
+def api_list_logs():
+    return {"logs": workflow_logs.list_recent(120)}
 
 
 @app.post("/api/jobs/{job_id}/cancel")

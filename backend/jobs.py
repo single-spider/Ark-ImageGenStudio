@@ -8,7 +8,9 @@ import mimetypes
 import os
 import threading
 import time
+import traceback
 import uuid
+from collections import deque
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -55,6 +57,39 @@ class EventBus:
 
 
 bus = EventBus()
+
+
+class WorkflowLogBuffer:
+    def __init__(self, maxlen: int = 200) -> None:
+        self._entries: deque[dict[str, Any]] = deque(maxlen=maxlen)
+        self._lock = threading.Lock()
+        self._seq = 0
+
+    def log(self, level: str, message: str, job_id: str | None = None, detail: str = "") -> dict[str, Any]:
+        ts = int(time.time() * 1000)
+        with self._lock:
+            self._seq += 1
+            entry = {
+                "id": f"log-{ts}-{self._seq}",
+                "ts": ts,
+                "level": level,
+                "job_id": job_id,
+                "message": message,
+                "detail": detail,
+            }
+            self._entries.append(entry)
+        prefix = f"[Ark Workflow][{level.upper()}]" + (f"[{job_id}]" if job_id else "")
+        print(f"{prefix} {message}" + (f"\n{detail}" if detail and level == "error" else ""), flush=True)
+        bus.emit("workflow_log", entry)
+        return entry
+
+    def list_recent(self, limit: int = 120) -> list[dict[str, Any]]:
+        with self._lock:
+            items = list(self._entries)
+        return items[-limit:]
+
+
+workflow_logs = WorkflowLogBuffer()
 
 
 class JobQueue:
@@ -126,6 +161,11 @@ class JobQueue:
             self._queue.extend(created)
         self._event.set()
         for job in created:
+            workflow_logs.log(
+                "info",
+                f"Queued {job['model_name']} ({job['px_size']}, refs={len(job['ref_ids'])}, {'dry-run' if job['dry_run'] else 'live'})",
+                job_id=job["id"],
+            )
             bus.emit("job_update", job)
         return created
 
@@ -215,6 +255,7 @@ class JobQueue:
 
         job_id = job["id"]
         self._update_job(job_id, "running")
+        workflow_logs.log("info", f"Starting {job['model_name']} ({job['px_size']})", job_id=job_id)
         try:
             cfg = read_json(db.CONFIG_PATH, {})
             api_key = (cfg.get("api_key") or "").strip()
@@ -253,6 +294,7 @@ class JobQueue:
                     extra["output_format"] = "jpeg"
 
                 if ref_ids:
+                    workflow_logs.log("info", f"Encoding {len(ref_ids)} reference image(s)...", job_id=job_id)
                     with db._db_lock:
                         conn = db.get_conn()
                         try:
@@ -272,6 +314,7 @@ class JobQueue:
                         finally:
                             conn.close()
 
+                workflow_logs.log("info", f"Calling {request_model} at {base_url}...", job_id=job_id)
                 resp = client.images.generate(
                     model=request_model,
                     prompt=job["prompt"],
@@ -280,6 +323,7 @@ class JobQueue:
                     extra_body=extra,
                 )
                 url = resp.data[0].url
+                workflow_logs.log("info", "Downloading generated image...", job_id=job_id)
                 dl = requests.get(url, timeout=180)
                 dl.raise_for_status()
                 img_path.write_bytes(dl.content)
@@ -349,6 +393,7 @@ class JobQueue:
                     conn.close()
 
             self._update_job(job_id, "done", result_asset_id=base_name)
+            workflow_logs.log("info", f"Completed -> {base_name}", job_id=job_id)
             if asset_dict:
                 bus.emit("asset_added", {"asset": asset_dict, "job_id": job_id})
 
@@ -362,9 +407,12 @@ class JobQueue:
                 if code == "SetLimitExceeded"
                 else f"BytePlus rate limit: {e}"
             )
+            workflow_logs.log("error", msg, job_id=job_id, detail=traceback.format_exc())
             self._update_job(job_id, "error", error=msg)
         except Exception as e:
-            self._update_job(job_id, "error", error=f"{type(e).__name__}: {e}")
+            msg = f"{type(e).__name__}: {e}"
+            workflow_logs.log("error", msg, job_id=job_id, detail=traceback.format_exc())
+            self._update_job(job_id, "error", error=msg)
 
 
 queue = JobQueue()

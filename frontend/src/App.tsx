@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, ChevronDown, CircleHelp, Eye, EyeOff, FolderOpen, Images, LayoutDashboard, Lock, Monitor, Palette, PanelRightClose, PanelRightOpen, RefreshCw, RotateCcw, Settings, Shield, Sparkles, TestTube, X } from 'lucide-react';
+import {
+  AlertTriangle, Check, ChevronDown, CircleHelp, Eye, EyeOff, FolderOpen, Images,
+  LayoutDashboard, Lock, Monitor, Palette, PanelRightClose, PanelRightOpen,
+  RefreshCw, RotateCcw, Settings, Shield, Sparkles, Terminal, TestTube, X,
+} from 'lucide-react';
 import { Gallery } from './components/Gallery';
 import { FullLibrary } from './components/FullLibrary';
 import { MultiSelectBar } from './components/library/MultiSelectBar';
@@ -13,6 +17,7 @@ import Dock from './components/dock/Dock';
 import { mockStudioApi } from './lib/api';
 import { backendAssetToStudio } from './lib/backend-asset-mapper';
 import { createBrowserBackend, createDesktopBackend, detectLocalBackend, nativeOpenFolder } from './lib/backend-client';
+import type { BackendJob, BackendWorkflowLog } from './lib/backend-types';
 import type { BrowserBridgeConnection } from './lib/browser-bridge';
 import { getLineage, getLineageWindow } from './lib/lineage';
 import {
@@ -56,6 +61,11 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
   const [seed, setSeed] = useState('');
   const [creativity, setCreativity] = useState(42);
   const [dryRun, setDryRun] = useState(false);
+  const [batch, setBatch] = useState(1);
+  const [jobs, setJobs] = useState<BackendJob[]>([]);
+  const [workflowLogs, setWorkflowLogs] = useState<BackendWorkflowLog[]>([]);
+  const [latestError, setLatestError] = useState<string | null>(null);
+  const [logsOpen, setLogsOpen] = useState(false);
   const [rawConfig, setRawConfig] = useState<Record<string, unknown>>({});
   const [sorterLabel, setSorterLabel] = useState<string>('');
   const [privacyEnabled, setPrivacyEnabled] = useState<boolean>(() => {
@@ -143,9 +153,15 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
     let active = true;
     void (async () => {
       try {
-        const [boot] = await Promise.all([backend.bootstrap(), refreshBackendAssets(true)]);
+        const [boot, logRes] = await Promise.all([
+          backend.bootstrap(),
+          backend.listLogs().catch(() => ({ logs: [] as BackendWorkflowLog[] })),
+          refreshBackendAssets(true),
+        ]);
         if (!active) return;
         setRawConfig(boot.config || {});
+        setJobs(boot.jobs || []);
+        setWorkflowLogs(logRes.logs || []);
         setTopApiKey(String(boot.config?.api_key ?? ''));
         setTopBaseUrl(String(boot.config?.base_url ?? ''));
         setTopProEp(String(boot.config?.pro_endpoint_id ?? ''));
@@ -161,19 +177,33 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
     })();
 
     const disconnect = backend.connectEvents((ev) => {
-      if (ev.type === 'job_update') {
-        const p = ev.payload as { status?: string; error?: string };
+      if (ev.type === 'workflow_log') {
+        const entry = ev.payload as unknown as BackendWorkflowLog;
+        if (entry?.id) {
+          setWorkflowLogs((prev) => [...prev.slice(-199), entry]);
+        }
+      } else if (ev.type === 'job_update') {
+        const p = ev.payload as Partial<BackendJob> & { id?: string; status?: BackendJob['status']; error?: string | null };
+        if (p.id) {
+          setJobs((prev) => {
+            const exists = prev.some((j) => j.id === p.id);
+            const next = exists
+              ? prev.map((j) => (j.id === p.id ? { ...j, ...p } : j))
+              : [{ id: p.id!, status: p.status ?? 'queued', result_asset_id: p.result_asset_id ?? null, error: p.error ?? null, updated_at: p.updated_at ?? Date.now(), ...p }, ...prev];
+            const stillRunning = next.some((j) => j.status === 'queued' || j.status === 'running');
+            if (!stillRunning) setGenerating(false);
+            return next.slice(0, 40);
+          });
+        }
         if (p.status === 'error') {
-          setGenerating(false);
-          toast('Generation failed', p.error || 'Unknown error');
-        } else if (p.status === 'canceled') {
-          setGenerating(false);
+          const msg = p.error || 'Unknown generation error';
+          setLatestError(msg);
+          toast('Generation failed', msg);
         }
       } else if (ev.type === 'asset_added') {
         const p = ev.payload as { asset?: { id: string }; job_id?: string };
         void refreshBackendAssets(Boolean(p.job_id)).then(() => {
           if (p.job_id) {
-            setGenerating(false);
             if (p.asset?.id) {
               setActiveId(p.asset.id);
               setTab('main');
@@ -494,7 +524,8 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
         refIds.unshift(branchOriginId);
       }
       try {
-        await backend.generate({
+        setLatestError(null);
+        const res = await backend.generate({
           prompt: prompt.trim(),
           model_name: model,
           model_code: mc.model_code,
@@ -502,13 +533,17 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
           base_res: resolution,
           aspect_ratio: ratio,
           dry_run: dryRun,
-          batch: 1,
+          batch,
           ref_ids: refIds.slice(0, mc.max_reference_images),
           ref_roles: refRoles,
         });
-        toast(dryRun ? 'Dry-run job queued' : 'Generation started', `${model} · ${pxSize.replace('x', '×')}`);
+        if (res.jobs?.length) {
+          setJobs((prev) => [...res.jobs, ...prev].slice(0, 40));
+        }
+        toast(dryRun ? 'Dry-run job queued' : `Generation started (${batch}×)`, `${model} · ${pxSize.replace('x', '×')}`);
       } catch (err) {
         setGenerating(false);
+        setLatestError(String(err));
         toast('Failed to queue generation', String(err));
       }
       return;
@@ -617,12 +652,17 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
             creativity={creativity} generating={generating}
             isDesktopBackend={Boolean(backend)}
             dryRun={dryRun}
+            batch={batch}
+            latestError={latestError}
+            onDismissError={() => setLatestError(null)}
+            onOpenLogs={() => setLogsOpen(true)}
             apiConfig={isBrowserBridge ? undefined : {
               apiKey: String(rawConfig.api_key ?? ''),
               baseUrl: String(rawConfig.base_url ?? ''),
               proEndpointId: String(rawConfig.pro_endpoint_id ?? ''),
             }}
             onDryRunChange={setDryRun}
+            onBatchChange={setBatch}
             onSaveApiConfig={isBrowserBridge ? undefined : async (cfg) => {
               if (!backend) return;
               const next = { ...rawConfig, api_key: cfg.apiKey.trim(), base_url: cfg.baseUrl.trim(), pro_endpoint_id: cfg.proEndpointId.trim(), model };
@@ -672,6 +712,12 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
       {!fullLibraryOpen && !covered && <Dock className="ark-global-dock" position="bottom" baseItemSize={44} magnification={60} distance={140} panelHeight={58} gap={8} bounce={false} accentColor="var(--accent)" items={[
         { icon: <Settings size={21}/>, label: controlsOpen ? 'Hide Studio Controls' : 'Show Studio Controls', active: controlsOpen, onClick: () => setControlsOpen(open=>!open) },
         { icon: <Images size={21}/>, label: miniLibraryOpen ? 'Hide Mini Library' : 'Show Mini Library', active: miniLibraryOpen, onClick: () => setMiniLibraryOpen(open=>!open) },
+        ...(backend ? [{
+          icon: latestError ? <AlertTriangle size={21} style={{ color: '#f87171' }}/> : <Terminal size={21}/>,
+          label: latestError ? 'Workflow Error — View Logs' : generating ? `Generating (${jobs.filter((j) => j.status === 'queued' || j.status === 'running').length}) — View Logs` : `Jobs & Error Logs (${workflowLogs.length})`,
+          active: logsOpen || Boolean(latestError),
+          onClick: () => setLogsOpen(true),
+        }] : []),
       ]}/>}
       {fullLibraryOpen && (
         <FullLibrary
@@ -807,6 +853,77 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
           </motion.div>
         )}
       </AnimatePresence>
+      {logsOpen && (
+        <div className="ark-log-modal-backdrop" onClick={() => setLogsOpen(false)}>
+          <div className="ark-log-modal" role="dialog" aria-modal="true" aria-label="Workflow status and error logs" onClick={(e) => e.stopPropagation()}>
+            <div className="ark-log-modal-head">
+              <div>
+                <span className="section-kicker">WORKFLOW DIAGNOSTICS</span>
+                <h2>Jobs &amp; Error Logs</h2>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {backend && (
+                  <button
+                    type="button"
+                    className="ark-log-refresh-btn"
+                    onClick={() => {
+                      void Promise.all([backend.listJobs(), backend.listLogs()]).then(([jr, lr]) => {
+                        setJobs(jr.jobs || []);
+                        setWorkflowLogs(lr.logs || []);
+                      });
+                    }}
+                  >
+                    <RefreshCw size={13} /> Refresh
+                  </button>
+                )}
+                <button type="button" className="icon-button" onClick={() => setLogsOpen(false)} aria-label="Close logs">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="ark-log-section">
+              <h3>Recent Jobs ({jobs.length})</h3>
+              {jobs.length === 0 ? (
+                <div className="ark-log-empty">No generation jobs recorded yet in this session.</div>
+              ) : (
+                <div className="ark-log-jobs">
+                  {jobs.slice(0, 12).map((j) => (
+                    <div key={j.id} className={`ark-log-job status-${j.status}`}>
+                      <span className="ark-job-badge">{j.status.toUpperCase()}</span>
+                      <span className="ark-job-meta">{j.model_name || 'Unknown'} · {j.px_size || ''}</span>
+                      <span className="ark-job-msg">{j.error || j.result_asset_id || j.prompt?.slice(0, 60) || j.id}</span>
+                      {(j.status === 'queued' || j.status === 'running') && backend && (
+                        <button type="button" className="ark-job-cancel" onClick={() => { void backend.cancelJob(j.id); }}>Cancel</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="ark-log-section">
+              <h3>Workflow Log ({workflowLogs.length})</h3>
+              {workflowLogs.length === 0 ? (
+                <div className="ark-log-empty">No workflow log entries yet.</div>
+              ) : (
+                <div className="ark-log-entries">
+                  {[...workflowLogs].reverse().map((entry) => (
+                    <div key={entry.id} className={`ark-log-entry level-${entry.level}`}>
+                      <span className="ark-log-ts">{new Date(entry.ts).toLocaleTimeString()}</span>
+                      <span className="ark-log-lvl">{entry.level.toUpperCase()}</span>
+                      <div className="ark-log-body">
+                        <div>{entry.message}</div>
+                        {entry.detail && <pre>{entry.detail}</pre>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {backend && covered && (
         <div
           role="dialog"

@@ -81,6 +81,15 @@ export interface BackendBootstrap {
   total_assets: number;
 }
 
+export interface BackendWorkflowLog {
+  id: string;
+  ts: number;
+  level: 'info' | 'warn' | 'error';
+  job_id: string | null;
+  message: string;
+  detail: string;
+}
+
 export interface BackendAssetQuery {
   space?: 'all' | 'keepers' | 'finals' | 'vault' | 'generations' | 'others' | 'originals' | 'scratchpad' | 'trash' | 'archived';
   search?: string;

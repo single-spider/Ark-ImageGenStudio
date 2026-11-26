@@ -849,3 +849,165 @@ a { color: inherit; text-decoration: none; }
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 12px;
 }
+
+/* ══ WORKFLOW BATCH, ERROR BANNER & LOG MODAL ══ */
+.ark-batch-pills {
+  display: inline-flex;
+  gap: 3px;
+  padding: 2px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(12, 18, 17, 0.72);
+}
+.ark-batch-pills button {
+  border: 0;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  background: transparent;
+  color: #9da49a;
+  cursor: pointer;
+}
+.ark-batch-pills button.active {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--accent);
+}
+
+.ark-workflow-error-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  background: rgba(127, 29, 29, 0.34);
+  color: #fecaca;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.ark-workflow-error-text { min-width: 0; word-break: break-word; }
+.ark-workflow-error-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ark-workflow-error-actions button {
+  border: 1px solid rgba(254, 202, 202, 0.32);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fecaca;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ark-status-log-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c8cec4;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ark-status-log-btn.is-running {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  color: var(--accent);
+}
+.ark-status-log-btn.has-error {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(127, 29, 29, 0.36);
+  color: #fca5a5;
+}
+
+.ark-log-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(6, 10, 9, 0.80);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.ark-log-modal {
+  width: min(860px, 100%);
+  max-height: 84vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #101715;
+  padding: 20px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.72);
+}
+.ark-log-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.ark-log-modal-head h2 { font-size: 19px; font-weight: 700; color: #f4f2e8; margin-top: 3px; }
+.ark-log-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e4e6dc;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ark-log-section { margin-top: 14px; }
+.ark-log-section h3 { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #9da49a; margin-bottom: 8px; }
+.ark-log-empty { font-size: 12px; color: #7b847a; padding: 10px 0; }
+.ark-log-jobs, .ark-log-entries { display: flex; flex-direction: column; gap: 6px; }
+.ark-log-job {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 11px;
+}
+.ark-log-job.status-error { border-color: rgba(248, 113, 113, 0.4); background: rgba(127, 29, 29, 0.2); }
+.ark-job-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); }
+.ark-log-job.status-error .ark-job-badge { color: #fca5a5; background: rgba(248, 113, 113, 0.2); }
+.ark-log-job.status-done .ark-job-badge { color: #86efac; background: rgba(34, 197, 94, 0.16); }
+.ark-log-job.status-running .ark-job-badge { color: var(--accent); background: rgba(var(--accent-rgb), 0.16); }
+.ark-job-meta { color: #9da49a; white-space: nowrap; }
+.ark-job-msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e4e6dc; }
+.ark-job-cancel { border: 1px solid rgba(255,255,255,0.16); background: transparent; color: #fca5a5; border-radius: 6px; padding: 2px 7px; font-size: 10px; cursor: pointer; }
+.ark-log-entry {
+  display: grid;
+  grid-template-columns: 76px 52px minmax(0, 1fr);
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.26);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #d6dbd2;
+}
+.ark-log-entry.level-error { border-left: 3px solid #f87171; color: #fecaca; }
+.ark-log-ts { color: #7f897e; }
+.ark-log-lvl { font-weight: 700; }
+.ark-log-body pre {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 10px;
+  color: #fca5a5;
+}

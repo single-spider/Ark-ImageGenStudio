@@ -20,8 +20,13 @@ interface StudioControlsProps {
   generating: boolean;
   isDesktopBackend?: boolean;
   dryRun?: boolean;
+  batch?: number;
+  latestError?: string | null;
+  onDismissError?: () => void;
+  onOpenLogs?: () => void;
   apiConfig?: { apiKey: string; baseUrl: string; proEndpointId: string };
   onDryRunChange?: (v: boolean) => void;
+  onBatchChange?: (n: number) => void;
   onSaveApiConfig?: (cfg: { apiKey: string; baseUrl: string; proEndpointId: string }) => void;
   onTestApi?: () => void;
   onReferencePreview: (id: string) => void;
@@ -45,7 +50,7 @@ const models = Object.keys(SEEDREAM_MODELS);
 
 export function StudioControls({
   visible = true, assets, references, onReferencePick, prompt, negativePrompt, model, ratio, resolution, seed, creativity,
-  generating, isDesktopBackend = false, dryRun = false, apiConfig, onDryRunChange, onSaveApiConfig, onTestApi, onReferencePreview, onReferenceReorder,
+  generating, isDesktopBackend = false, dryRun = false, batch = 1, latestError = null, onDismissError, onOpenLogs, apiConfig, onDryRunChange, onBatchChange, onSaveApiConfig, onTestApi, onReferencePreview, onReferenceReorder,
   onReferenceImport, onReferenceToggle, onReferenceClear,
   onPromptChange, onNegativePromptChange, onModelChange, onRatioChange,
   onResolutionChange, onSeedChange, onCreativityChange, onGenerate, onToast,
@@ -223,11 +228,39 @@ export function StudioControls({
       </section>
       </div>
       <div className="ark-controls-generation">
-        <div className="prompt-output-summary"><span>{model}</span><span>{resolution} · {pxSize.replace('x', '×')}{dryRun ? ' · DRY RUN' : ''}</span></div>
+        <div className="prompt-output-summary">
+          <span>{model} · {resolution} · {pxSize.replace('x', '×')}{dryRun ? ' · DRY RUN' : ''}</span>
+          {isDesktopBackend && onBatchChange && (
+            <div className="ark-batch-pills" role="group" aria-label="Batch count">
+              {[1, 2, 3, 4].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={batch === n ? 'active' : ''}
+                  onClick={() => onBatchChange(n)}
+                  title={`Generate ${n} image${n > 1 ? 's' : ''}`}
+                >
+                  {n}×
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {latestError && (
+          <div className="ark-workflow-error-banner" role="alert">
+            <div className="ark-workflow-error-text">
+              <strong>Workflow error:</strong> {latestError}
+            </div>
+            <div className="ark-workflow-error-actions">
+              {onOpenLogs && <button type="button" onClick={onOpenLogs}>Logs</button>}
+              {onDismissError && <button type="button" onClick={onDismissError} aria-label="Dismiss error"><X size={13} /></button>}
+            </div>
+          </div>
+        )}
         <button type="button" className="generate-button" disabled={generating || !prompt.trim()} onClick={onGenerate}>
           <span className="generate-button-shine" />
           {generating ? <LoaderCircle className="spin" size={19} /> : <Sparkles size={19} />}
-          <span>{generating ? (dryRun ? 'Simulating (Dry Run)…' : 'Generating…') : 'Generate image'}</span>
+          <span>{generating ? (dryRun ? 'Simulating (Dry Run)…' : `Generating${batch > 1 ? ` (${batch}×)` : ''}…`) : `Generate${batch > 1 ? ` ${batch} images` : ' image'}`}</span>
           {!generating && <ArrowUpRight size={18} className="generate-arrow" />}
         </button>
         {!isDesktopBackend && (
