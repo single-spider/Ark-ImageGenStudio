@@ -9,7 +9,7 @@ const base = 'http://127.0.0.1:5173/'; // Ark explicitly uses mock mode on this 
 await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', '5173', '--strictPort'], { stdio: 'inherit' });
 let browser;
-const report = { commit: process.env.GITHUB_SHA || 'local', screenshots: [], errors: [], fallbackImages: [] };
+const report = { commit: process.env.ARK_HEAD_SHA || process.env.GITHUB_SHA || 'local', screenshots: [], errors: [], fallbackImages: [] };
 const cache = new Map();
 
 // Stable, non-private fixtures if the demo image CDN is unavailable.
@@ -70,7 +70,7 @@ async function scenario(size) {
     await page.goto(base, { waitUntil: 'domcontentloaded' });
     await page.locator('.stage-image').waitFor({ state: 'visible' });
     await capture(page, prefix + '-library-open');
-    await page.locator('header button[aria-label="Collapse Mini Library (L)"]').click();
+    await page.locator('header button[aria-label="Collapse Mini Library"]').click();
     await capture(page, prefix + '-library-closed');
     if (width === 1440) {
       for (const [name, label] of [['compare', 'Compare images'], ['mask', 'Paint mask'], ['pan', 'Pan image']]) {
@@ -83,11 +83,12 @@ async function scenario(size) {
       await page.getByRole('button', { name: 'Open generation setup' }).click();
       await capture(page, prefix + '-generation-settings');
       await page.getByRole('button', { name: 'Close generation setup' }).click();
-      await page.getByRole('button', { name: 'Add image', exact: true }).click();
+      await page.locator('.reference-card .ref-import').first().click();
       await capture(page, prefix + '-reference-picker');
     }
   } catch (error) {
     report.errors.push({ viewport: size, message: error.message });
+    console.error(prefix, error.message);
     await page.screenshot({ path: join(output, prefix + '-failure.png') }).catch(() => {});
   } finally {
     await context.close();
