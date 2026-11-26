@@ -82,6 +82,29 @@ async function scenario(size) {
     if (width === 1440) {
       await page.getByRole('button', { name: 'Edit workspace layout' }).click();
       await capture(page, prefix + '-layout-edit');
+      const dragPanel = async (source, target) => {
+        const handle = page.getByRole('button', { name: 'Move ' + source, exact: true });
+        const from = await handle.boundingBox();
+        const to = await page.locator('[data-panel="' + target + '"]').boundingBox();
+        if (!from || !to) throw new Error('Missing drag source or target');
+        await page.mouse.move(from.x+from.width/2,from.y+from.height/2);
+        await page.mouse.down();
+        await page.mouse.move(to.x+to.width/2,to.y+Math.min(80,to.height/2),{steps:12});
+        if (!(await page.locator('.ark-grid-drop-preview.is-primary').count())) throw new Error('No occupied drop preview');
+        await page.mouse.up();
+      };
+      const geometry = async id => page.locator('[data-panel="' + id + '"]').evaluate(el => ['x','y','w','h'].map(k => Number(el.getAttribute('gs-'+k) || (k==='w'||k==='h'?1:0))));
+      const canvasBefore = await geometry('canvas');
+      const controlsBefore = await geometry('controls');
+      await dragPanel('Studio controls','canvas');
+      const controlsLeft = await geometry('controls');
+      const canvasAfter = await geometry('canvas');
+      if (controlsLeft[0] !== 0 || controlsLeft[2] !== controlsBefore[2] || canvasAfter[0] !== controlsBefore[2] || canvasAfter[2] !== canvasBefore[2]) throw new Error('Packed unequal-width panel reorder failed');
+      await capture(page,prefix+'-controls-left');
+      await dragPanel('Library','controls');
+      if ((await geometry('library'))[0] !== 0) throw new Error('Packed Library reorder failed');
+      await capture(page,prefix+'-library-left');
+      await page.getByRole('button', { name: 'Reset workspace layout' }).click();
       const handle = page.getByRole('button', { name: 'Move Library', exact: true });
       await handle.focus();
       const tile = page.locator('[data-panel="library"]');
@@ -117,6 +140,16 @@ async function scenario(size) {
     }
     await page.locator('header button[aria-label="Collapse Mini Library"]').click();
     await capture(page, prefix + '-library-closed');
+    if (width === 1440) {
+      await page.getByRole('button', { name: 'Edit workspace layout' }).click();
+      const handle = page.getByRole('button', { name: 'Move Studio controls', exact: true });
+      await handle.focus();
+      await handle.press('ArrowLeft');
+      if (Number(await page.locator('[data-panel="controls"]').getAttribute('gs-x') || 0) !== 0) throw new Error('Packed two-panel keyboard reorder failed');
+      await capture(page,prefix+'-two-panel-controls-left');
+      await page.getByRole('button', { name: 'Reset workspace layout' }).click();
+      await page.getByRole('button', { name: 'Lock workspace layout' }).click();
+    }
     if (width === 1440) {
       for (const [name, label] of [['compare', 'Compare images'], ['mask', 'Paint mask'], ['pan', 'Pan image']]) {
         await page.getByRole('button', { name: label, exact: true }).click();

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { GripHorizontal } from 'lucide-react';
 import { GridStack, type GridStackWidget } from 'gridstack';
 
@@ -42,6 +42,56 @@ function validLayout(items: unknown, ids: Panel[]): items is Placement[] {
   if (new Set(items.map(item => item.id)).size !== ids.length) return false;
   return !items.some((a, i) => items.some((b, j) => i !== j && overlaps(a, b)));
 }
+// Reorder a contiguous row or column without changing any panel's dimensions.
+function reorderBand(items: Placement[], source: Placement, target: Placement, axis: 'x' | 'y'): Placement[] | null {
+  const cross = axis === 'x' ? 'y' : 'x';
+  const size = axis === 'x' ? 'w' : 'h';
+  const crossSize = axis === 'x' ? 'h' : 'w';
+  if (source[cross] !== target[cross] || source[crossSize] !== target[crossSize]) return null;
+  const band = items.filter(p => p[cross] === source[cross] && p[crossSize] === source[crossSize]).sort((a,b) => a[axis] - b[axis]);
+  if (band.some((p,i) => i > 0 && band[i-1][axis] + band[i-1][size] !== p[axis])) return null;
+  const from = band.findIndex(p => p.id === source.id);
+  const to = band.findIndex(p => p.id === target.id);
+  if (from < 0 || to < 0 || from === to) return null;
+  let offset = band[0][axis];
+  const order = [...band];
+  order.splice(from, 1);
+  order.splice(to, 0, source);
+  const moved = order.map(p => {
+    const result = { ...p, [axis]: offset };
+    offset += p[size];
+    return result;
+  });
+  return items.map(p => moved.find(q => q.id === p.id) ?? p);
+}
+
+function planMove(items: Placement[], id: Panel, proposed: Placement, targetId?: Panel): Placement[] | null {
+  const source = items.find(p => p.id === id);
+  if (!source) return null;
+  const ids = items.map(p => p.id);
+  const target = items.find(p => p.id === targetId && p.id !== id);
+  if (!target) {
+    const next = items.map(p => p.id === id ? proposed : p);
+    return validLayout(next, ids) ? next : null;
+  }
+  // Preserve sizes for packed strips, including a wider canvas among sidebars.
+  for (const axis of ['x','y'] as const) {
+    const next = reorderBand(items, source, target, axis);
+    if (next && validLayout(next, ids)) return next;
+  }
+  // For irregular layouts, exchange positions if both rectangles still fit.
+  const positioned = items.map(p => p.id === id ? { ...p, x: target.x, y: target.y }
+    : p.id === target.id ? { ...p, x: source.x, y: source.y } : p);
+  if (validLayout(positioned, ids)) return positioned;
+  // Otherwise exchange the occupied rectangles, respecting each panel's minimum.
+  const exchanged = items.map(p => p.id === id ? { ...target, id }
+    : p.id === target.id ? { ...source, id: target.id } : p);
+  return validLayout(exchanged, ids) ? exchanged : null;
+}
+type MoveDrag = {
+  id: Panel; pointerId: number; startX: number; startY: number;
+  layout: Placement[]; source: Placement; next: Placement[] | null;
+};
 function storageKey(open: boolean) { return STORAGE + (open ? ':open' : ':closed'); }
 function readLayout(open: boolean, side: Side): Placement[] {
   const defaults = defaultLayout(open, side);
@@ -78,8 +128,10 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
   const instance = useRef<GridStack | null>(null);
   const lastReset = useRef(resetToken);
   const editingRef = useRef(editing);
+  const dragRef = useRef<MoveDrag | null>(null);
+  const [preview, setPreview] = useState<{ id: Panel; layout: Placement[] } | null>(null);
 
-  useLayoutEffect(() => { editingRef.current = editing; }, [editing]);
+  useLayoutEffect(() => { editingRef.current = editing; if (!editing) { dragRef.current = null; setPreview(null); } }, [editing]);
   useLayoutEffect(() => {
     const el = gridRef.current;
     const shell = shellRef.current;
@@ -109,8 +161,8 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
     const grid = GridStack.init({
       column: COLS, row: ROWS, float: true, margin: 5, animate: false,
       cellHeight: Math.max(1, Math.floor(shell.clientHeight / ROWS)),
-      disableDrag: !editingRef.current, disableResize: !editingRef.current,
-      draggable: { handle: '.ark-grid-handle' },
+      // Pointer-controlled moves allow occupied-space reordering. GridStack still owns resizing and geometry.
+      disableDrag: true, disableResize: !editingRef.current,
       resizable: { handles: 'n,ne,e,se,s,sw,w,nw', autoHide: false },
     }, el);
     instance.current = grid;
@@ -138,9 +190,66 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
   }, [libraryOpen, initialSide, resetToken]);
 
   useLayoutEffect(() => {
-    instance.current?.enableMove(editing);
+    instance.current?.enableMove(false);
     instance.current?.enableResize(editing);
   }, [editing, libraryOpen, resetToken]);
+
+  function applyMove(next: Placement[]) {
+    const grid = instance.current;
+    if (!grid) return;
+    grid.load(next.map(p => ({ ...p, ...limits[p.id] })), false);
+    const actual = snapshot(grid);
+    if (validLayout(actual, next.map(p => p.id))) {
+      try { localStorage.setItem(storageKey(libraryOpen), JSON.stringify(actual)); } catch { /* optional */ }
+    }
+  }
+
+  function beginMove(event: PointerEvent<HTMLDivElement>, id: Panel) {
+    if (!editing || !event.isPrimary || event.button !== 0 || !instance.current) return;
+    const layout = snapshot(instance.current);
+    const source = layout.find(p => p.id === id);
+    if (!source) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.focus();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = { id, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, layout, source, next: null };
+  }
+
+  function updateMove(event: PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    const grid = instance.current;
+    if (!drag || drag.pointerId !== event.pointerId || !grid || !gridRef.current) return;
+    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 5) {
+      drag.next = null; setPreview(null); return;
+    }
+    const bounds = gridRef.current.getBoundingClientRect();
+    const cellW = bounds.width / COLS;
+    const cellH = grid.getCellHeight();
+    const x = (event.clientX - bounds.left) / cellW;
+    const y = (event.clientY - bounds.top) / cellH;
+    if (x < 0 || x >= COLS || y < 0 || y >= ROWS) {
+      drag.next = null; setPreview(null); return;
+    }
+    const target = drag.layout.find(p => p.id !== drag.id && x >= p.x && x < p.x+p.w && y >= p.y && y < p.y+p.h);
+    const proposed = {
+      ...drag.source,
+      x: Math.max(0, Math.min(COLS-drag.source.w, drag.source.x + Math.round((event.clientX-drag.startX)/cellW))),
+      y: Math.max(0, Math.min(ROWS-drag.source.h, drag.source.y + Math.round((event.clientY-drag.startY)/cellH))),
+    };
+    drag.next = planMove(drag.layout, drag.id, proposed, target?.id);
+    setPreview(drag.next ? { id: drag.id, layout: drag.next } : null);
+  }
+
+  function finishMove(event: PointerEvent<HTMLDivElement>, cancel = false) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (!cancel) updateMove(event);
+    dragRef.current = null;
+    setPreview(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (!cancel && drag.next) applyMove(drag.next);
+  }
 
   function moveByKeyboard(event: KeyboardEvent<HTMLDivElement>, id: Panel) {
     if (!editing || !instance.current || !gridRef.current) return;
@@ -157,8 +266,13 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
     const next = event.shiftKey
       ? { ...current, w: current.w + dx, h: current.h + dy }
       : { ...current, x: current.x + dx, y: current.y + dy };
-    if (!validLayout(placements.map(item => item.id === id ? next : item), placements.map(item => item.id))) return;
-    grid.update(el, next);
+    if (event.shiftKey) {
+      if (validLayout(placements.map(item => item.id === id ? next : item), placements.map(item => item.id))) grid.update(el, next);
+      return;
+    }
+    const target = placements.find(p => p.id !== id && overlaps(next, p));
+    const plan = planMove(placements, id, next, target?.id);
+    if (plan) applyMove(plan);
   }
 
   function panel(id: Panel, content: ReactNode, hidden = false) {
@@ -166,8 +280,11 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
       <div key={id} className="ark-grid-item" data-panel={id} hidden={hidden}>
         <div className="grid-stack-item-content">
           <div role="button" className="ark-grid-handle" tabIndex={editing ? 0 : -1}
-            aria-label={`Move ${titles[id]}`} title="Drag to move. Arrow keys move; Shift + arrows resize into free space."
-            onKeyDown={event => moveByKeyboard(event, id)}><GripHorizontal size={15}/><span>{titles[id]}</span></div>
+            aria-label={`Move ${titles[id]}`} title="Drag to move or reorder panels. Arrow keys move; Shift + arrows resize."
+            onPointerDown={event => beginMove(event, id)} onPointerMove={updateMove}
+            onPointerUp={event => finishMove(event)} onPointerCancel={event => finishMove(event, true)}
+            onLostPointerCapture={event => finishMove(event, true)}
+            onKeyDown={event => { if (event.key === 'Escape') { dragRef.current = null; setPreview(null); } else moveByKeyboard(event, id); }}><GripHorizontal size={15}/><span>{titles[id]}</span></div>
           {content}
         </div>
       </div>
@@ -179,6 +296,13 @@ export function ArkWorkspaceGrid({ libraryOpen, initialSide, editing, resetToken
         {panel('canvas', canvas)}
         {panel('controls', controls)}
         {panel('library', library, !libraryOpen)}
+        {editing && preview && preview.layout.filter(p => {
+          const old = dragRef.current?.layout.find(q => q.id === p.id);
+          return old && (old.x !== p.x || old.y !== p.y || old.w !== p.w || old.h !== p.h);
+        }).map(p => <div key={p.id} aria-hidden="true" className={`ark-grid-drop-preview ${p.id === preview.id ? 'is-primary' : ''}`}
+          style={{ left: `${p.x / COLS * 100}%`, top: `${p.y / ROWS * 100}%`, width: `${p.w / COLS * 100}%`, height: `${p.h / ROWS * 100}%` }}>
+          <span>{p.id === preview.id ? `Move ${titles[p.id]} here` : titles[p.id]}</span>
+        </div>)}
       </div>
     </main>
   );

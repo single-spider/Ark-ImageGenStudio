@@ -109,3 +109,18 @@
   bottom: 4px;
   opacity: .8;
 }
+
+/* Preview all affected rectangles before committing a move into occupied space. */
+.ark-grid-drop-preview {
+  position:absolute; z-index:45; pointer-events:none;
+  padding:6px; display:flex; align-items:center; justify-content:center;
+}
+.ark-grid-drop-preview::before {
+  content:''; position:absolute; inset:5px; border:1px dashed rgba(var(--accent-rgb),.72);
+  background:rgba(var(--accent-rgb),.12); border-radius:12px;
+}
+.ark-grid-drop-preview.is-primary::before { border:2px solid var(--accent); background:rgba(var(--accent-rgb),.19); }
+.ark-grid-drop-preview span {
+  position:relative; padding:6px 10px; border-radius:7px;
+  color:var(--accent); background:var(--theme-dialog,#1c2820); font-size:12px; font-weight:700;
+}
