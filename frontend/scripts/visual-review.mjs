@@ -9,7 +9,7 @@ const base = 'http://127.0.0.1:5173/'; // Ark explicitly uses mock mode on this 
 await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', '5173', '--strictPort'], { stdio: 'inherit' });
 let browser;
-const report = { commit: process.env.GITHUB_SHA || 'local', screenshots: [], errors: [], fallbackImages: [] };
+const report = { commit: process.env.ARK_HEAD_SHA || process.env.GITHUB_SHA || 'local', screenshots: [], errors: [], fallbackImages: [] };
 const cache = new Map();
 
 // Stable, non-private fixtures if the demo image CDN is unavailable.
