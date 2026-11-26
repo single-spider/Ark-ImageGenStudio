@@ -39,9 +39,8 @@ export const mockAssets: StudioAsset[] = source.map(([photo, title, prompt, coll
 }));
 
 export const initialReferences: ReferenceSlot[] = [
-  { id: 'ref-1', title: 'Composition', role: 'Structure', src: mockAssets[3].thumb, enabled: true },
-  { id: 'ref-2', title: 'Atmosphere', role: 'Style', src: mockAssets[1].thumb, enabled: true },
-  { id: 'ref-3', title: 'Detail', role: 'Detail', src: mockAssets[8].thumb, enabled: false },
+  { id: 'ref-1', title: 'Reference image', role: 'Reference', src: mockAssets[3].thumb, assetId: mockAssets[3].id, enabled: true },
+  { id: 'ref-2', title: 'Reference image', role: 'Reference', src: mockAssets[1].thumb, assetId: mockAssets[1].id, enabled: true },
 ];
 
 export const promptPresets = [

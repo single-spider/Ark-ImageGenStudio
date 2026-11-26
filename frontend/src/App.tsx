@@ -8,6 +8,7 @@ import { StudioControls } from './components/StudioControls';
 import { Workspace } from './components/Workspace';
 import { ArkWorkspaceGrid } from './components/ArkWorkspaceGrid';
 import { initialReferences, mockAssets } from './data/mock';
+import { recordPrompt } from './lib/prompt-history';
 import { mockStudioApi } from './lib/api';
 import { backendAssetToStudio } from './lib/backend-asset-mapper';
 import { createBrowserBackend, createDesktopBackend, detectLocalBackend, nativeOpenFolder } from './lib/backend-client';
@@ -33,11 +34,9 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
   const [activeId, setActiveId] = useState(mockAssets[0].id);
   const [compareId, setCompareId] = useState(mockAssets[1].id);
   const [references, setReferences] = useState<ReferenceSlot[]>(
-    backend
-      ? initialReferences.map((r) => ({ ...r, src: null, assetId: undefined, enabled: false }))
-      : initialReferences,
+    backend ? [] : initialReferences,
   );
-  const [referencePreviewId, setReferencePreviewId] = useState(initialReferences[0].id);
+  const [referencePreviewId, setReferencePreviewId] = useState(initialReferences[0]?.id ?? '');
   const [tab, setTab] = useState<WorkspaceTab>('main');
   const [tool, setTool] = useState<WorkspaceTool>('pan');
   const [zoom, setZoom] = useState(100);
@@ -353,8 +352,18 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
     toast('Branch ready', 'Edit the inherited prompt, then generate a mock child iteration.');
   }
 
+  function attachReference(id: string, src: string, assetId?: string) {
+    const max = SEEDREAM_MODELS[model]?.max_reference_images ?? 10;
+    setReferences(current => {
+      const existing = current.find(r => r.id === id);
+      if (existing) return current.map(r => r.id === id ? { ...r, src, assetId, enabled: true } : r);
+      if (current.length >= max) return current;
+      return [...current, { id, title: 'Reference image', role: 'Reference', src, assetId, enabled: true }];
+    });
+  }
+
   function pickReference(slotId: string, asset: StudioAsset) {
-    setReferences((current) => current.map((ref) => ref.id === slotId ? { ...ref, src: asset.src, assetId: asset.id, enabled: true } : ref));
+    attachReference(slotId, asset.src, asset.id);
     setReferencePreviewId(slotId);
     setTab('reference');
     setTool('pan');
@@ -368,7 +377,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
           const res = await backend.importAsset(String(reader.result), file.name);
           const mapped = backendAssetToStudio(res.asset, backend);
           setAssets((current) => [mapped, ...current]);
-          setReferences((current) => current.map((ref) => ref.id === id ? { ...ref, src: mapped.src, assetId: mapped.id, enabled: true } : ref));
+          attachReference(id, mapped.src, mapped.id);
           setReferencePreviewId(id);
           setTab('reference');
           setTool('pan');
@@ -381,30 +390,23 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
       return;
     }
     const src = URL.createObjectURL(file);
-    setReferences((current) => current.map((ref) => ref.id === id ? { ...ref, src, assetId: undefined, enabled: true } : ref));
+    attachReference(id, src);
     setReferencePreviewId(id);
     setTab('reference');
     setTool('pan');
     toast('Reference imported', file.name);
   }
 
-  function addReferenceSlot() {
-    const maxSlots = SEEDREAM_MODELS[model]?.max_reference_images ?? 10;
-    if (references.length >= maxSlots) return;
-    const n = references.length + 1;
-    setReferences((current) => [
-      ...current,
-      { id: `ref-${n}`, title: `Reference ${n}`, role: 'Detail', src: null, enabled: false },
-    ]);
-    return `ref-${n}`;
-  }
-
   function addAsReference(id: string) {
-    const asset = assets.find((item) => item.id === id);
+    const asset = assets.find(item => item.id === id);
     if (!asset) return;
-    const slot = references.find((ref) => !ref.enabled || !ref.src) ?? references[references.length - 1];
-    setReferences((current) => current.map((ref) => ref.id === slot.id ? { ...ref, src: asset.src, assetId: asset.id, enabled: true } : ref));
-    setReferencePreviewId(slot.id);
+    if (references.length >= (SEEDREAM_MODELS[model]?.max_reference_images ?? 10)) {
+      toast('Reference limit reached', 'Remove an attachment before adding another.');
+      return;
+    }
+    const refId = 'ref-' + crypto.randomUUID();
+    attachReference(refId, asset.src, asset.id);
+    setReferencePreviewId(refId);
     toast('Added to reference', asset.title);
   }
 
@@ -446,7 +448,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
     if (assets.length <= 1) return toast('Keep one image', 'The workspace needs at least one image.');
     const remaining = assets.filter((a) => a.id !== id);
     setAssets(remaining);
-    setReferences((cur) => cur.map((r) => (r.assetId === id ? { ...r, src: null, assetId: undefined, enabled: false } : r)));
+    setReferences(cur => cur.filter(r => r.assetId !== id));
     if (activeId === id && remaining[0]) setActiveId(remaining[0].id);
     if (compareId === id && remaining[0]) setCompareId(remaining[1]?.id ?? remaining[0].id);
     if (backend) {
@@ -464,6 +466,7 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
 
   async function generate() {
     if (generating || !prompt.trim()) return;
+    recordPrompt({ prompt: prompt.trim(), model, ratio, resolution, createdAt: new Date().toISOString() });
     setGenerationModel(model);
     setGenerating(true);
     setTab('main');
@@ -622,10 +625,11 @@ export default function App({ bridge = null }: { bridge?: BrowserBridgeConnectio
               const res = await backend.dryRun();
               toast(res.success ? 'API connection OK' : 'API test failed', res.message || res.error);
             }}
-            onAddReferenceSlot={addReferenceSlot}
+            onReferencePreview={(id) => { setReferencePreviewId(id); setTab('reference'); setTool('pan'); }}
+            onReferenceReorder={(from, to) => setReferences(current => { const next = [...current]; const a = next.findIndex(r => r.id === from); const b = next.findIndex(r => r.id === to); if (a < 0 || b < 0) return current; next.splice(b, 0, next.splice(a, 1)[0]); return next; })}
             onReferenceImport={importReference}
             onReferenceToggle={(id) => setReferences((current) => current.map((ref) => ref.id === id ? { ...ref, enabled: !ref.enabled } : ref))}
-            onReferenceClear={(id) => setReferences((current) => current.map((ref) => ref.id === id ? { ...ref, src: null, assetId: undefined, enabled: false } : ref))}
+            onReferenceClear={(id) => setReferences(current => current.filter(r => r.id !== id))}
             onPromptChange={setPrompt} onNegativePromptChange={setNegativePrompt}
             onModelChange={(m) => {
               setModel(m);

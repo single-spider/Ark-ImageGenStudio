@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { anchoredPosition } from '../lib/anchored-position';
 import { Bookmark, Check, Info, Search, Upload, X } from 'lucide-react';
 import { filterLibrary, libraryAspect } from '../lib/library';
 import type { ReferenceSlot, StudioAsset } from '../types/studio';
@@ -31,15 +32,7 @@ export function ReferencePicker({ anchor, slot, assets, onPick, onImport, onClos
 
   useLayoutEffect(() => {
     function place() {
-      const rect = anchor.getBoundingClientRect();
-      const panel = anchor.closest('.controls-panel')?.getBoundingClientRect() ?? rect;
-      const width = Math.min(368, window.innerWidth - 24);
-      const height = Math.min(470, window.innerHeight - 24);
-      const left = panel.left >= width + 20 ? panel.left - width - 10
-        : panel.right + width + 20 <= window.innerWidth ? panel.right + 10
-        : Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
-      const top = Math.max(12, Math.min(rect.top, window.innerHeight - height - 12));
-      setPosition({ left, top, width, height });
+      setPosition(anchoredPosition(anchor,368,470));
     }
     place();
     searchRef.current?.focus();
@@ -70,7 +63,7 @@ export function ReferencePicker({ anchor, slot, assets, onPick, onImport, onClos
   return createPortal(
     <div ref={ref} className="ark-reference-picker" role="dialog" aria-label={`Choose reference for ${slot.title}`} style={position}>
       <header className="ark-ref-picker-head">
-        <div><span>REFERENCE / {slot.role.toUpperCase()}</span><strong>{slot.title}</strong></div>
+        <div><strong>{slot.title}</strong></div>
         <button type="button" title="Close reference picker" aria-label="Close reference picker" onClick={() => { onClose(); anchor.focus(); }}><X size={17}/></button>
       </header>
       <label className="ark-ref-picker-search"><Search size={15}/><input ref={searchRef} value={query} onChange={(event) => { setQuery(event.target.value); setLimit(80); }} placeholder="Search images or collections…" aria-label="Search reference images"/></label>
@@ -96,7 +89,7 @@ export function ReferencePicker({ anchor, slot, assets, onPick, onImport, onClos
         {results.length > limit && <button className="ark-ref-picker-more" type="button" onClick={() => setLimit((count) => count + 80)}>Show more images</button>}
       </div>
       {detail && <div className="ark-ref-picker-detail"><div><strong>{detail.title}</strong><span>{detail.model} · {detail.ratio}</span></div><button type="button" onClick={() => setDetails(null)} aria-label="Close image details"><X size={14}/></button></div>}
-      <footer>{results.length} images · Select to assign this slot</footer>
+      <footer>{results.length} images · Select an image to attach</footer>
     </div>,
     document.body
   );

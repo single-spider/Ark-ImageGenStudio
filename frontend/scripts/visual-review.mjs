@@ -161,8 +161,21 @@ async function scenario(size) {
       await page.getByRole('button', { name: 'Open generation setup' }).click();
       await capture(page, prefix + '-generation-settings');
       await page.getByRole('button', { name: 'Close generation setup' }).click();
-      await page.locator('.reference-card .ref-import').first().click();
+      const add = page.getByRole('button',{name:'Add reference',exact:true});
+      const count = await page.locator('.ark-attachment').count();
+      await add.click();
       await capture(page, prefix + '-reference-picker');
+      await page.getByRole('button',{name:/^Use .* as reference$/}).first().click();
+      if(await page.locator('.ark-attachment').count()!==count+1) throw new Error('Reference picker did not append');
+      await capture(page,prefix+'-reference-added');
+      await page.locator('.ark-attachment').last().hover();
+      await page.locator('.ark-attachment').last().getByRole('button',{name:'Clear reference'}).click();
+      if(await page.locator('.ark-attachment').count()!==count) throw new Error('Reference removal failed');
+      await page.getByRole('button',{name:'Prompt history',exact:true}).click();
+      await capture(page,prefix+'-prompt-history');
+      await page.getByRole('button',{name:/^Restore prompt /}).first().click();
+      if(!(await page.getByRole('textbox',{name:'Generation prompt'}).inputValue()).trim()) throw new Error('Prompt restore failed');
+      if(await page.locator('.utility-section,.prompt-chips').count()) throw new Error('Retired controls remain');
     }
   } catch (error) {
     report.errors.push({ viewport: size, message: error.message });

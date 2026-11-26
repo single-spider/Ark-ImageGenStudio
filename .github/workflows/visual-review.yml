@@ -7,7 +7,7 @@ on:
       - 'frontend/**'
       - '.github/workflows/visual-review.yml'
   push:
-    branches: [main, 'verify/workspace-*']
+    branches: [main, 'verify/workspace-*', 'feat/studio-next']
     paths:
       - 'frontend/**'
       - '.github/workflows/visual-review.yml'
