@@ -218,3 +218,12 @@
   .ark-workspace-grid .controls-panel .ark-controls-generation { padding-bottom:8px; }
   .ark-workspace-grid .controls-panel .generate-button { height:42px; }
 }
+
+/* Keep the complete quick ratio row above the pinned generation area at 720p. */
+@container (max-height:680px) {
+  .ark-workspace-grid .controls-panel .control-section { padding-top:5px;padding-bottom:5px; }
+  .ark-workspace-grid .controls-panel .ark-attachment,.ark-workspace-grid .controls-panel .ark-attachment-add { max-height:80px; }
+  .ark-workspace-grid .controls-panel .ark-attachment-grid { max-height:92px; }
+  .ark-workspace-grid .controls-panel .prompt-composer textarea { height:66px;min-height:60px; }
+  .ark-workspace-grid .controls-panel .ark-prompt-commands { margin-bottom:2px; }
+}

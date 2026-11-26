@@ -83,9 +83,9 @@ async function scenario(size) {
       const scroll=document.querySelector('.ark-controls-scroll')?.getBoundingClientRect();
       const ratio=document.querySelector('.ratio-field--quick')?.getBoundingClientRect();
       const buttons=document.querySelector('.ark-prompt-commands')?.getBoundingClientRect();
-      return !!scroll&&!!ratio&&!!buttons&&ratio.bottom<=scroll.bottom+2&&buttons.bottom<=scroll.bottom+2;
+      return { visible: !!scroll&&!!ratio&&!!buttons&&ratio.bottom<=scroll.bottom+2&&buttons.bottom<=scroll.bottom+2, scrollBottom: scroll?.bottom, ratioBottom: ratio?.bottom, commandsBottom: buttons?.bottom };
     });
-    if(!keyControls) throw new Error('Prompt history or aspect ratio clipped in default workspace at '+prefix);
+    if(!keyControls.visible) throw new Error('Prompt history or aspect ratio clipped in default workspace at '+prefix+': '+JSON.stringify(keyControls));
     if (width === 1440) {
       await page.getByRole('button', { name: 'Edit workspace layout' }).click();
       await capture(page, prefix + '-layout-edit');
